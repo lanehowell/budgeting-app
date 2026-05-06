@@ -1,367 +1,273 @@
 **Budgeting App**
 
-*Design Guide **&** Visual Specification*
+*Design Guide & Visual Specification*
 
 # Design Philosophy
 
-This app should feel modern, calm, and confident — inspired by current iOS aesthetics (iOS 26 era) without trying to replicate platform-specific effects like Liquid Glass that don't translate cleanly to the web. The goal is a web app that feels native to a phone: tactile, fluid, and uncluttered.
+The app should feel like a quiet, well-built tool — closer to Things 3, Linear, or a paper notebook than to a bright iOS app. Calm surfaces, lots of whitespace, lighter type, and almost no decorative chrome. Numbers do most of the talking.
 
 ## Core Principles
 
-- **Mobile-first, always. **Design and build for the phone first. Desktop is a scaled-up version, not the primary canvas.
-
-- **Clarity over cleverness. **Restrained palette, generous whitespace, strong typographic hierarchy. No decorative noise.
-
-- **Bold left-aligned headers. **Modern iOS-style large titles at the top of each page, left-aligned, heavy weight.
-
-- **Solid surfaces, not faux glass. **Use clean opaque cards with soft shadows. Don't try to fake Liquid Glass — it ends up looking cheap in CSS.
-
-- **Motion has meaning. **Every animation reinforces what's happening (a modal arriving, a transaction being saved). No animation for animation's sake.
-
-- **Accessible by default. **Strong contrast ratios, scalable typography, large tap targets (minimum 44×44 pt).
+- **Mobile-first, always.** Design and build for the phone first; desktop is a scaled-up version.
+- **Restraint over ornament.** No drop shadows, no gradients, no colored category dots. Borders are 0.5px hairlines. Cards are flat panels separated by hairlines, not floating with shadows.
+- **Lighter, tighter type.** Page titles are 30px / weight 600 with negative tracking. Body is weight 400. Money is weight 500 with tabular-nums. Lighter than iOS but still confident.
+- **Whitespace as structure.** Sections are separated by 28–36px gaps, not by colored fills. Each page is wrapped in `var(--side-pad)` (22px on mobile) and uses uppercase eyebrows to label sections rather than card backgrounds.
+- **Monochrome accents.** Brand "accent" is the primary text color (near-black in light, near-white in dark). Color is reserved for semantic states only (success, warning, danger).
+- **Motion has meaning.** Spring easing (`cubic-bezier(0.3, 0.7, 0.4, 1)`), short durations, and only where it reinforces what's happening (modal arriving, value updating).
+- **Accessible by default.** Strong contrast, scalable type, 44×44 tap targets, focus rings.
 
 # Color System
 
-Use CSS custom properties (variables) for every color. Each token has a light-mode value and a dark-mode value, swapped via a [data-theme="dark"] attribute on the root or via prefers-color-scheme. Never hardcode hex values in component styles — always reference a token.
+Every color is a CSS custom property in `src/app.css`. Light is the default; dark mode swaps via `[data-theme="dark"]` on `<html>`. Never hardcode hex in component styles — always reference a token.
 
 ## Background Tokens
 
-| **Token** | **Light** | **Dark** | **Usage** |
+| Token | Light | Dark | Usage |
 | --- | --- | --- | --- |
-| **--bg-primary** | #FFFFFF | #000000 | Page background |
-| **--bg-secondary** | #F2F2F7 | #1C1C1E | Grouped sections, cards behind cards |
-| **--bg-tertiary** | #FFFFFF | #2C2C2E | Card surfaces |
-| **--bg-elevated** | #FFFFFF | #2C2C2E | Modals, sheets, popovers |
+| `--bg-primary` | `#FAFAF8` | `#0B0B0C` | Page background (paper-like, not pure white/black) |
+| `--bg-secondary` | `#F3F3F0` | `#141416` | Subtly grouped sections, login frame edge |
+| `--bg-tertiary` | `#FFFFFF` | `#141416` | Card surface (when used) |
+| `--bg-elevated` | `#FFFFFF` | `#141416` | Bottom sheets, popovers |
 
-## Text Tokens
+## Text Tokens (opacity-based scale)
 
-| **Token** | **Light** | **Dark** | **Usage** |
+| Token | Light | Dark | Usage |
 | --- | --- | --- | --- |
-| **--text-primary** | #000000 | #FFFFFF | Headers, primary content |
-| **--text-secondary** | #3C3C43 | #EBEBF5 | Body text, descriptions |
-| **--text-tertiary** | #8E8E93 | #8E8E93 | Captions, timestamps, hints |
-| **--text-quaternary** | #C7C7CC | #48484A | Placeholder, disabled |
+| `--text-primary` | `#0A0A0A` | `#F5F5F4` | Headers, primary content |
+| `--text-secondary` | `rgba(10,10,10,0.58)` | `rgba(245,245,244,0.62)` | Body, descriptions |
+| `--text-tertiary` | `rgba(10,10,10,0.38)` | `rgba(245,245,244,0.38)` | Captions, hints, eyebrows, separators of text |
+| `--text-quaternary` | `rgba(10,10,10,0.20)` | `rgba(245,245,244,0.20)` | Placeholder, disabled, drag handle |
 
-## Accent & Semantic Tokens
+## Fills & Separators
 
-| **Token** | **Light** | **Dark** | **Usage** |
+| Token | Light | Dark | Usage |
 | --- | --- | --- | --- |
-| **--accent** | #007AFF | #0A84FF | Primary actions, active nav |
-| **--success** | #34C759 | #30D158 | Paid bills, positive states |
-| **--warning** | #FF9500 | #FF9F0A | Bills due soon |
-| **--danger** | #FF3B30 | #FF453A | Overdue, errors, destructive |
-| **--separator** | #C6C6C8 | #38383A | Hairline dividers |
+| `--fill-1` | `rgba(0,0,0,0.04)` | `rgba(255,255,255,0.08)` | Search bar, segmented track, switch off-state, soft buttons |
+| `--fill-2` | `rgba(0,0,0,0.025)` | `rgba(255,255,255,0.05)` | Even subtler fill |
+| `--separator` | `rgba(0,0,0,0.08)` | `rgba(255,255,255,0.07)` | Hairline (`border: 0.5px solid`) — the primary structural line |
+| `--separator-strong` | `rgba(0,0,0,0.12)` | `rgba(255,255,255,0.12)` | Slightly stronger when separating dense content |
+
+## Semantic Tokens
+
+| Token | Light | Dark | Usage |
+| --- | --- | --- | --- |
+| `--accent` | `#0A0A0A` | `#F5F5F4` | Primary actions resolve to text color (monochrome) |
+| `--success` | `#15803D` | `#4ADE80` | Income, positive deltas |
+| `--warning` | `#A16207` | `#FBBF24` | Pending, caution |
+| `--danger` | `#B91C1C` | `#F87171` | Overdue, errors, destructive |
 
 # Typography
 
-Use the system font stack so the app picks up SF Pro on iOS, San Francisco on macOS, Segoe on Windows, and Roboto on Android — fonts feel native everywhere.
+System font stack (SF on Apple, Segoe on Windows, Roboto on Android), via `--font-system`. Money uses `--font-num` and `font-variant-numeric: tabular-nums` so columns line up.
 
-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Segoe UI", Roboto, sans-serif;
 
 ## Type Scale
 
-| **Style** | **Size** | **Weight** | **Usage** |
-| --- | --- | --- | --- |
-| **Large Title** | 34px / 41px | 700 | Page header (e.g., "Bills") |
-| **Title 1** | 28px / 34px | 700 | Section header |
-| **Title 2** | 22px / 28px | 600 | Subsection header |
-| **Headline** | 17px / 22px | 600 | List item title, modal header |
-| **Body** | 17px / 22px | 400 | Default body text |
-| **Callout** | 16px / 21px | 400 | Secondary content |
-| **Subheadline** | 15px / 20px | 400 | Supporting text |
-| **Footnote** | 13px / 18px | 400 | Small captions, hints |
-| **Caption** | 12px / 16px | 400 | Timestamps, fine print |
+| Style | Size / line | Weight | Tracking | Usage |
+| --- | --- | --- | --- | --- |
+| Title large | 30 / 32 | 600 | -0.027em | Page header (`<h1>` on each page) |
+| Title 1 | 24 / 26 | 600 | -0.022em | Modal/section header |
+| Title 2 | 18 / 22 | 500 | -0.015em | Subsection header |
+| Headline | 15 / 20 | 500 | -0.013em | List row primary text |
+| Body | 14 / 20 | 400 | -0.01em | Default body |
+| Subheadline | 13 / 18 | 400 | -0.01em | Supporting text |
+| Footnote | 12 / 16 | 400 | -0.01em | Hints, secondary detail |
+| Caption | 11 / 14 | 400 | -0.01em | Fine print |
+| Eyebrow | 11 / 14 | 600 | 0.067em **upper** | Section labels (`SectionLabel`, `PageHeader` eyebrow) |
 
-**Notes: **Page titles use the Large Title style at the top of each screen — heavy, left-aligned, sized so they make a clear statement before any content. Use letter-spacing: -0.02em on titles for tighter, more modern feel. Numbers (amounts, balances) should use tabular figures (font-variant-numeric: tabular-nums) so columns align cleanly.
+**Notes.** Big totals on Bills/Spending pages override the scale: 44–48px, weight 500, letter-spacing -0.036em to -0.038em — they're the page's anchor. Always use `tabular-nums` on money so columns align.
 
 # Spacing System
 
-Use a 4-point base scale. All padding, margins, and gaps should snap to one of these values.
+4-point scale. Variables: `--space-1` … `--space-16`. Padding/margins/gaps should snap to a value from this scale.
 
-4, 8, 12, 16, 20, 24, 32, 40, 48, 64
+`4, 8, 12, 16, 20, 24, 28, 32, 40, 48, 64`
 
-- **Page horizontal padding: **16px on mobile, 24px on tablet, 32px on desktop.
+- **Side padding** (`--side-pad`): `22px` mobile, `28px` ≥768px, `36px` ≥1024px. Pages own their own horizontal padding via `.pad`.
+- **Group gap**: 28px between sections.
+- **Row gap**: 14px between rows in a list (the row itself has `padding: 14px 0`).
+- **Tap target minimum**: 44×44px, always.
 
-- **Card internal padding: **16px.
-
-- **Vertical gap between sections: **32px.
-
-- **Vertical gap inside a list: **12px between rows.
-
-- **Tap target minimum: **44×44px. Always.
-
-# Corners & Shadows
+# Corners & Lines
 
 ## Border Radius
 
-- **Cards ****&**** list rows: **14px (modern iOS uses larger radii than older apps)
-
-- **Modals ****&**** sheets: **20px on the top corners only
-
-- **Buttons: **10px for rectangular, fully rounded (capsule) for pill-style primary actions
-
-- **Badges ****&**** pills: **Fully rounded
-
-- **Inputs: **12px
+- `--radius-card`: **12px** (cards, the rare elevated surface)
+- `--radius-modal`: **16px** (top-corners only on bottom sheet)
+- `--radius-input`: **10px** (text inputs, soft buttons)
+- `--radius-button`: **999px** (capsule pills, switches, segmented thumb)
 
 ## Shadows
 
-Shadows should be soft and subtle — never harsh. In dark mode, shadows are barely visible; rely on background contrast instead.
+Almost never. Cards are flat with a hairline border. The only shadow we use is on the bottom sheet:
 
-- **Card shadow (light): **0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)
-
-- **Modal shadow (light): **0 -4px 24px rgba(0,0,0,0.12)
-
-- **Dark mode: **Use a slightly lighter card background (--bg-tertiary) instead of a shadow.
+- `--shadow-modal` light: `0 -8px 32px rgba(0,0,0,0.08)`
+- `--shadow-modal` dark: `0 -8px 32px rgba(0,0,0,0.5)`
 
 # Component Patterns
 
 ## Page Header
 
-Each page starts with a Large Title, left-aligned, with the page name (e.g., "Bills"). Below it, a short summary line if relevant (e.g., "$842.18 left to pay this period"). The title shrinks and slides into a smaller nav bar style as the user scrolls.
+Each page starts with `PageHeader`: an optional uppercase **eyebrow** (e.g. "Pay period · May 1 – May 14") and a 30px title. Optional right-side `actions` slot for icons.
 
-## Tab Bar (Bottom Nav)
+## Section Label
 
-Fixed at the bottom on mobile. Four tabs: Bills, Transactions, Spending, Profile. Each tab has an SF Symbols-style icon (use Lucide or Heroicons for the web — they pair well visually) plus a small label below. The active tab uses --accent for both icon and label; inactive tabs use --text-tertiary.
+Above each list group: `SectionLabel` — uppercase 11px / 600 / tracked, optional count, optional right-aligned accessory string (typically a money total). Tone "danger" for Overdue.
 
-- **Height: **64px + safe-area-inset-bottom on mobile
+## Lists & Rows
 
-- **Background: **--bg-elevated with a 1px hairline top border in --separator
+No card wrapper around a list. Rows are direct children of the `.pad` container, separated by `0.5px solid var(--separator)`. The last row removes its bottom border.
 
-- **On desktop: **Convert to a left sidebar with the same four items, vertical layout
+- 14px vertical padding per row, 14px gap between row content
+- Left-most: small mono icon (28px `CategoryGlyph`), or a "date stamp" (uppercase 10px month + 18px day) on Bills
+- Center: 15px / 500 primary line + 12px tertiary secondary line
+- Right: amount in tabular nums
 
-## List Rows
+## Bottom Sheet (Categorization)
 
-Bills, transactions, and category breakdowns all use a similar list-row pattern:
+Slides up from the bottom-edge, anchored full-width. `--bg-elevated`, 16px top corners, 22px horizontal padding, 22px gap between sections.
 
-- Grouped inside a card with --bg-tertiary background and 14px corner radius
+- 36×4px pill drag handle in `--text-quaternary`, centered, -8px above the content
+- Background dim: `rgba(0,0,0,0.36)`, 200ms fade in
+- Sheet entry: `translateY(100%) → 0` over 320ms with `cubic-bezier(0.3, 0.7, 0.4, 1)`
+- Dismissable by: dragging down, tapping the dim, or Cancel
+- After Save: sheet dismisses; user picks the next transaction at their own pace (see [SPEC.md](SPEC.md) Categorization Flow). No auto-advance.
 
-- Each row has 16px vertical padding, separated by hairline (--separator) lines that don't extend to the card edges
+## Bottom Tab Bar
 
-- Left side: optional colored category dot or icon, then primary label (Headline) above secondary label (Footnote, --text-tertiary)
+Fixed bottom, 4 tabs. The bar uses a vertical gradient from `var(--bg-primary)` to transparent plus `backdrop-filter: blur(16px) saturate(180%)` so list content fades behind it. 0.5px top hairline. Active tab uses `--text-primary`; inactive uses `--text-tertiary`. Mono outline icons; stroke 1.5 (active 2). Label is 10px / 500.
 
-- Right side: amount in tabular figures, larger and bold; below it a status badge if relevant
-
-- Tappable rows have a brief background fade to --bg-secondary on press
-
-## Bottom Sheet Modal (Transaction Categorization)
-
-This is the centerpiece of the categorization workflow. It must feel snappy and natural.
-
-- **Slides up from the bottom, **anchored to the bottom edge of the viewport
-
-- **Background dims to **rgba(0,0,0,0.4) with a 200ms fade
-
-- **Sheet itself: **--bg-elevated, 20px top corners, 24px internal padding
-
-- **Drag handle: **36×4px pill in --text-quaternary, centered, 8px from top
-
-- **Dismissable by: **dragging down, tapping the dimmed background, or tapping a Cancel button
-
-- **After Save: **brief checkmark flash, sheet dismisses, user returns to the transactions list. The user picks the next transaction to triage at their own pace — no auto-advance (see [SPEC.md](SPEC.md) Categorization Flow).
+≥1024px the tab bar becomes a 220px left sidebar with row-style tabs (no blur).
 
 ## Buttons
 
-- **Primary: **Solid --accent background, white text, 12px vertical / 24px horizontal padding, fully rounded (capsule) or 10px radius. 17px Headline weight.
+- **Primary**: solid `--text-primary` background, `--bg-primary` text, capsule (999px), 13–14px / 500. Used for the modal's Save and login.
+- **Secondary**: transparent, `--accent` (text-primary) text, capsule. Cancel actions.
+- **Destructive**: transparent text-only, `--danger`. Sign out, delete.
+- **Press feedback**: `transform: scale(0.96)` for 100ms.
 
-- **Secondary: **Transparent background, --accent text, no border. Used for less prominent actions.
+## Segmented Toggle
 
-- **Destructive: **--danger text on transparent background, or solid --danger for confirm-delete.
+The Activity page (Uncategorized / All) and Spending page (Category / Merchant) use `SegmentedToggle`: a 32px-tall pill in `--fill-1` with a sliding white "thumb" (`left` and `width` animated 220ms). Inactive labels: 13/500/`--text-secondary`. Active: 13/600/`--text-primary`.
 
-- **Press feedback: **Scale to 0.96 for 100ms, then back. No long press states.
+## Switch
 
-## Status Badges
+Custom 36×20 pill switch. Off: track `--fill-1`, thumb `--text-secondary` at left. On: track `--text-primary`, thumb `--bg-primary` at right. 200ms transition.
 
-Used on bills (Paid / Due Soon / Overdue) and transactions (Uncategorized).
+## Check Circle (Bills mark-as-paid)
 
-- Small pill, 4px vertical / 10px horizontal padding, 12px Caption text, 600 weight
+22px circle. Empty state: 1.25px border in `--text-quaternary`, transparent. Filled (paid): solid `--text-secondary` background with a centered 12px check in `--bg-primary`.
 
-- Soft tinted background (e.g., 12% opacity of the semantic color), strong colored text
+## Status Indicators
 
-- **Paid: **--success tint
+We avoid colored "badges" wherever a simpler treatment works:
 
-- **Due Soon: **--warning tint
+- **Pending transaction**: 9px / 600 / uppercase text in `--warning`, with a 0.5px `--warning` border, 1px×5px padding. Inline next to the merchant name.
+- **Paid bill**: row opacity 0.5, name with strikethrough.
+- **Overdue bill**: section label `tone="danger"` plus the running total displayed in `--danger` on the summary block.
 
-- **Overdue: **--danger tint
+## Period Progress
 
-- **Uncategorized: **--accent tint
+Two patterns:
+
+- **Bills page**: 3px hairline track in `--fill-1`, fill in `--text-primary`, transitioned over 350ms. Above it: paid count and `paid/total` money line in `tabular-nums`.
+- **Spending page**: 6px track with the same fill, plus a 1.5px vertical "elapsed-day" marker in `--text-secondary` extending 3px above and below the bar. Below: start label / "Day N of M" / end label.
 
 # Motion & Animation
 
-Animation is what makes the app feel native. Use spring-based easing wherever possible — never linear.
-
-## Easing Curves
-
-- **Standard ease (most things): **cubic-bezier(0.32, 0.72, 0, 1)
-
-- **Modal entry (springy): **cubic-bezier(0.32, 0.94, 0.6, 1)
-
-- **Exit (snappier): **cubic-bezier(0.4, 0, 1, 1)
-
-## Durations
-
-- **Micro (button press, badge appear): **100–150ms
-
-- **Small (tab switch, toggle): **200ms
-
-- **Medium (modal slide-up, page transition): **300–350ms
-
-- **Exit: **Always slightly faster than entry (e.g., 250ms exit vs 350ms entry)
-
-## Specific Transitions
-
-- **Modal slide-up: **Translate from translateY(100%) to translateY(0) over 350ms with spring easing. Background dim fades in over 200ms.
-
-- **Tab switch: **Brief opacity crossfade (200ms). Don't slide pages horizontally — feels dated.
-
-- **Mark bill as paid: **Status badge swaps with a brief scale-up (1.0 → 1.1 → 1.0 over 250ms), bill row's amount fades to --text-tertiary.
-
-- **Save categorization: **Brief checkmark icon scales in at the center of the sheet (200ms), fades out (200ms), then content swaps.
-
-- **List item entry (e.g., new transaction loaded): **Stagger fade-in with 30ms delay between each row, total 200ms each.
-
-- **Pull-to-refresh: **Spinner appears below the title with rubber-band drag feel.
-
-## Reduced Motion
-
-Always respect @media (prefers-reduced-motion: reduce). Replace slide and scale animations with simple opacity fades, and shorten durations to 150ms or less.
+- Standard ease: `cubic-bezier(0.3, 0.7, 0.4, 1)` (Linear-style spring).
+- Spring (modal entry): `cubic-bezier(0.4, 0, 0.2, 1)`.
+- Exit: faster than entry (e.g. 200ms exit vs 320ms entry).
+- Page transitions: a brief opacity + 6px horizontal slide (~260ms), no horizontal page slides.
+- Respect `@media (prefers-reduced-motion: reduce)`: replace transforms with opacity, cap durations to ~150ms.
 
 # Light & Dark Mode
 
-Light mode is the default; dark mode is a true black (#000000) base for OLED-friendly contrast, matching modern iOS.
+Light mode default. Dark mode flips via `[data-theme="dark"]` on `<html>` (set early via inline script in `app.html` to avoid FOUC). Manual override in Profile, persisted to localStorage. System theme tracks `prefers-color-scheme: dark` until the user picks an explicit preference.
 
-## Theme Switching
-
-- Default to system preference via prefers-color-scheme
-
-- Allow manual override in Profile (Light / Dark / System)
-
-- Persist the override in localStorage
-
-- Apply via [data-theme] attribute on <html> so CSS variables swap automatically
-
-- Theme transition: 200ms color fade on root background and text — but do NOT animate every individual element (causes flicker)
-
-## Dark Mode Specifics
-
-- Cards are slightly elevated (--bg-tertiary = #2C2C2E) on a true black base — this creates depth without shadows
-
-- Reduce shadow opacity drastically; rely on background contrast
-
-- Semantic colors get slightly brighter variants in dark mode (already in the table above)
-
-- Keep accent color saturation high — desaturated colors look muddy in dark mode
+Dark surfaces are flat — no shadows. Cards are slightly elevated (`#141416` on the `#0B0B0C` background) to create depth. Semantic colors get brighter variants in dark.
 
 # Iconography
 
-Use Lucide or Heroicons (outline style for nav, solid for active states). Both are free, widely used, and visually pair well with iOS-style design.
+Lucide outline icons via `lucide-svelte`, exposed through `<Icon name="…" />`. Stroke 1.5 (active states use 2). Common sizes:
 
-- **Tab bar icons: **24×24px outline by default, swap to solid when active
-
-- **List row icons: **20×20px
-
-- **Inline action icons: **18×18px
-
-- **Stroke width: **1.5px or 2px — never thinner
+- Tab bar: 22px
+- List row glyph: 28px (rendered via `<CategoryGlyph icon="…" />`, which centers the icon at 62% of the glyph size)
+- Inline action: 18px
+- Inline meta (search, chevron): 14px
 
 # Accessibility
 
-- All text meets WCAG AA contrast minimums (4.5:1 for body, 3:1 for large text)
-
-- Tap targets minimum 44×44px
-
-- Use semantic HTML (<button>, <nav>, <main>) — never <div onclick>
-
-- Visible focus rings on all interactive elements (2px --accent outline with 2px offset)
-
-- Don't rely on color alone — pair status colors with icons or text labels
-
-- Respect prefers-reduced-motion
-
-- Support text scaling — use rem units, not px, for font sizes in production
+- WCAG AA contrast (4.5:1 body, 3:1 large text). Verified for both modes.
+- 44×44 minimum tap target, even on the smallest segmented options.
+- Semantic HTML (`<button>`, `<nav>`, `<main>`).
+- Visible focus ring: `1.5px solid var(--text-primary)` with 2px offset.
+- Don't rely on color alone — pair semantics with text or icon.
+- Respect `prefers-reduced-motion`.
 
 # What to Avoid
 
-- **Faux Liquid Glass. **CSS backdrop-filter blur on top of complex backgrounds tends to look cheap and inconsistent across browsers. Skip it. Use solid surfaces.
-
-- **Heavy gradients. **A subtle gradient is fine for the page header background; avoid them on cards, buttons, or backgrounds.
-
-- **Decorative shadows. **Shadows should be functional (depth) — never colored, never large.
-
-- **Linear easing or 0.5s+ animations. **Slow animations make the app feel sluggish. Always use spring curves.
-
-- **Multiple primary colors. **Use the accent for primary actions and active states only. Don't tint everything blue.
-
-- **Tight tap targets. **Anything below 44×44 fails on mobile. No exceptions.
+- **Drop shadows on cards.** A 0.5px hairline reads cleaner.
+- **Colored category dots.** Use the mono `CategoryGlyph` instead.
+- **Heavy gradients** anywhere.
+- **Backdrop-filter blur** on cards or content (acceptable on the tab bar).
+- **Multiple competing accents.** Color is for semantic states only.
+- **Tight tap targets.** Anything below 44×44 fails on mobile.
 
 # Quick CSS Variable Reference
 
+```css
 :root {
+	--bg-primary: #fafaf8;
+	--bg-secondary: #f3f3f0;
+	--bg-tertiary: #ffffff;
+	--bg-elevated: #ffffff;
 
-  --bg-primary: #FFFFFF;
+	--text-primary: #0a0a0a;
+	--text-secondary: rgba(10, 10, 10, 0.58);
+	--text-tertiary: rgba(10, 10, 10, 0.38);
+	--text-quaternary: rgba(10, 10, 10, 0.2);
 
-  --bg-secondary: #F2F2F7;
+	--fill-1: rgba(0, 0, 0, 0.04);
+	--fill-2: rgba(0, 0, 0, 0.025);
+	--separator: rgba(0, 0, 0, 0.08);
+	--separator-strong: rgba(0, 0, 0, 0.12);
 
-  --bg-tertiary: #FFFFFF;
+	--accent: #0a0a0a;
+	--success: #15803d;
+	--warning: #a16207;
+	--danger: #b91c1c;
 
-  --bg-elevated: #FFFFFF;
+	--radius-card: 12px;
+	--radius-modal: 16px;
+	--radius-input: 10px;
+	--radius-button: 999px;
 
-  --text-primary: #000000;
+	--ease-standard: cubic-bezier(0.3, 0.7, 0.4, 1);
+	--ease-spring: cubic-bezier(0.4, 0, 0.2, 1);
 
-  --text-secondary: #3C3C43;
-
-  --text-tertiary: #8E8E93;
-
-  --text-quaternary: #C7C7CC;
-
-  --accent: #007AFF;
-
-  --success: #34C759;
-
-  --warning: #FF9500;
-
-  --danger: #FF3B30;
-
-  --separator: #C6C6C8;
-
-  --radius-card: 14px;
-
-  --radius-modal: 20px;
-
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
-
-  --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
-
-  --ease-spring: cubic-bezier(0.32, 0.94, 0.6, 1);
-
+	--side-pad: 22px;
+	--group-gap: 28px;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
+	--bg-primary: #0b0b0c;
+	--bg-secondary: #141416;
+	--bg-tertiary: #141416;
+	--bg-elevated: #141416;
 
-  --bg-primary: #000000;
+	--text-primary: #f5f5f4;
+	--text-secondary: rgba(245, 245, 244, 0.62);
+	--text-tertiary: rgba(245, 245, 244, 0.38);
+	--text-quaternary: rgba(245, 245, 244, 0.2);
 
-  --bg-secondary: #1C1C1E;
+	--fill-1: rgba(255, 255, 255, 0.08);
+	--separator: rgba(255, 255, 255, 0.07);
 
-  --bg-tertiary: #2C2C2E;
-
-  --bg-elevated: #2C2C2E;
-
-  --text-primary: #FFFFFF;
-
-  --text-secondary: #EBEBF5;
-
-  --text-tertiary: #8E8E93;
-
-  --text-quaternary: #48484A;
-
-  --accent: #0A84FF;
-
-  --success: #30D158;
-
-  --warning: #FF9F0A;
-
-  --danger: #FF453A;
-
-  --separator: #38383A;
-
+	--accent: #f5f5f4;
+	--success: #4ade80;
+	--warning: #fbbf24;
+	--danger: #f87171;
 }
+```

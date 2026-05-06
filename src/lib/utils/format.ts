@@ -46,14 +46,3 @@ export function dueDayLabel(day: number): string {
 	return `${day}${suffix(day)}`;
 }
 
-export function daysUntilDueDay(dueDay: number, now: Date = new Date()): number {
-	const year = now.getFullYear();
-	const month = now.getMonth();
-	const todayDay = now.getDate();
-	let target = new Date(year, month, dueDay);
-	if (dueDay < todayDay) {
-		target = new Date(year, month + 1, dueDay);
-	}
-	const diff = target.getTime() - new Date(year, month, todayDay).getTime();
-	return Math.round(diff / (1000 * 60 * 60 * 24));
-}

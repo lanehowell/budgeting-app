@@ -4,8 +4,8 @@
 
 	const tabs = [
 		{ href: '/bills', label: 'Bills', icon: 'receipt' },
-		{ href: '/transactions', label: 'Transactions', icon: 'list' },
-		{ href: '/spending', label: 'Spending', icon: 'pie-chart' },
+		{ href: '/transactions', label: 'Activity', icon: 'list' },
+		{ href: '/spending', label: 'Spending', icon: 'bar-chart' },
 		{ href: '/profile', label: 'Profile', icon: 'user' }
 	];
 
@@ -16,19 +16,21 @@
 </script>
 
 <nav class="tab-bar" aria-label="Primary">
-	{#each tabs as tab (tab.href)}
-		{@const active = isActive(tab.href, $page.url.pathname)}
-		<a
-			href={tab.href}
-			class="tab"
-			class:active
-			aria-current={active ? 'page' : undefined}
-			data-sveltekit-noscroll
-		>
-			<Icon name={tab.icon} size={24} strokeWidth={active ? 2.25 : 1.75} />
-			<span class="label">{tab.label}</span>
-		</a>
-	{/each}
+	<div class="grid">
+		{#each tabs as tab (tab.href)}
+			{@const active = isActive(tab.href, $page.url.pathname)}
+			<a
+				href={tab.href}
+				class="tab"
+				class:active
+				aria-current={active ? 'page' : undefined}
+				data-sveltekit-noscroll
+			>
+				<Icon name={tab.icon} size={22} strokeWidth={active ? 2 : 1.5} />
+				<span class="label">{tab.label}</span>
+			</a>
+		{/each}
+	</div>
 </nav>
 
 <style>
@@ -37,74 +39,84 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		display: flex;
-		justify-content: space-around;
-		align-items: stretch;
-		height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
-		padding-bottom: env(safe-area-inset-bottom, 0px);
-		background: var(--bg-elevated);
-		border-top: 1px solid var(--separator);
+		padding-top: 6px;
+		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+		background: linear-gradient(
+			to top,
+			color-mix(in srgb, var(--bg-primary) 96%, transparent) 60%,
+			color-mix(in srgb, var(--bg-primary) 0%, transparent) 100%
+		);
+		backdrop-filter: blur(16px) saturate(180%);
+		-webkit-backdrop-filter: blur(16px) saturate(180%);
+		border-top: 0.5px solid var(--separator);
 		z-index: 100;
 	}
 
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		max-width: 720px;
+		margin: 0 auto;
+		padding: 4px 0;
+	}
+
 	.tab {
-		flex: 1;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 2px;
-		padding: 8px 4px;
-		color: var(--text-tertiary);
-		font-size: 11px;
-		line-height: 14px;
-		font-weight: 500;
+		gap: 4px;
+		padding: 6px 0;
 		min-height: 44px;
+		color: var(--text-tertiary);
+		font-size: 10px;
+		font-weight: 500;
+		letter-spacing: 0.01em;
 		transition: color 150ms var(--ease-standard);
 	}
 
 	.tab.active {
-		color: var(--accent);
+		color: var(--text-primary);
 		font-weight: 600;
 	}
 
 	.label {
-		letter-spacing: 0.01em;
+		line-height: 1;
 	}
 
 	@media (min-width: 1024px) {
 		.tab-bar {
-			position: fixed;
 			top: 0;
 			right: auto;
-			bottom: 0;
-			left: 0;
-			width: 240px;
+			width: 220px;
 			height: 100vh;
-			padding-bottom: 0;
 			padding-top: 32px;
-			flex-direction: column;
-			justify-content: flex-start;
-			align-items: stretch;
-			gap: 4px;
+			padding-bottom: 32px;
+			background: var(--bg-primary);
+			backdrop-filter: none;
+			-webkit-backdrop-filter: none;
 			border-top: none;
-			border-right: 1px solid var(--separator);
+			border-right: 0.5px solid var(--separator);
+		}
+
+		.grid {
+			grid-template-columns: 1fr;
+			gap: 4px;
+			padding: 0 12px;
 		}
 
 		.tab {
-			flex: 0 0 auto;
 			flex-direction: row;
 			justify-content: flex-start;
 			gap: 12px;
-			padding: 12px 16px;
-			margin: 0 12px;
+			padding: 10px 14px;
 			border-radius: var(--radius-card);
-			font-size: 15px;
-			line-height: 20px;
+			font-size: 14px;
 		}
 
 		.tab.active {
-			background: color-mix(in srgb, var(--accent) 12%, transparent);
+			background: var(--fill-1);
+			font-weight: 500;
 		}
 	}
 </style>

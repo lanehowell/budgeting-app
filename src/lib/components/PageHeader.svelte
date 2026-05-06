@@ -1,29 +1,28 @@
 <script lang="ts">
 	type Props = {
 		title: string;
-		summary?: string;
+		eyebrow?: string;
 		actions?: import('svelte').Snippet;
 	};
 
-	let { title, summary, actions }: Props = $props();
+	let { title, eyebrow, actions }: Props = $props();
 </script>
 
 <header class="page-header">
+	{#if eyebrow}
+		<div class="eyebrow">{eyebrow}</div>
+	{/if}
 	<div class="row">
-		<h1 class="title-large">{title}</h1>
+		<h1 class="title">{title}</h1>
 		{#if actions}
 			<div class="actions">{@render actions()}</div>
 		{/if}
 	</div>
-	{#if summary}
-		<p class="summary subheadline">{summary}</p>
-	{/if}
 </header>
 
 <style>
 	.page-header {
-		padding-top: 16px;
-		padding-bottom: 16px;
+		padding: 12px 0 18px;
 	}
 
 	.row {
@@ -33,18 +32,19 @@
 		gap: 12px;
 	}
 
-	.title-large {
+	.title {
+		font-size: 30px;
+		line-height: 1.05;
+		font-weight: 600;
+		letter-spacing: -0.027em;
+		color: var(--text-primary);
 		flex: 1 1 auto;
-	}
-
-	.summary {
-		margin-top: 6px;
-		color: var(--text-secondary);
 	}
 
 	.actions {
 		display: flex;
-		gap: 8px;
+		gap: 6px;
 		align-items: center;
+		padding-bottom: 4px;
 	}
 </style>

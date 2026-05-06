@@ -13,7 +13,7 @@
 		Undo2,
 		Receipt,
 		List,
-		PieChart,
+		BarChart3,
 		User,
 		Check,
 		X,
@@ -30,7 +30,14 @@
 		RefreshCw,
 		Tag,
 		HelpCircle,
-		type IconProps
+		Heart,
+		Tv,
+		Plane,
+		Car,
+		Wallet,
+		ArrowDown,
+		ArrowUp,
+		Zap as Bolt
 	} from 'lucide-svelte';
 
 	type Props = {
@@ -38,9 +45,9 @@
 		size?: number;
 		strokeWidth?: number;
 		class?: string;
-	} & IconProps;
+	};
 
-	let { name, size = 20, strokeWidth = 2, class: className = '', ...rest }: Props = $props();
+	let { name, size = 18, strokeWidth = 1.5, class: className = '' }: Props = $props();
 
 	const map: Record<string, typeof Coffee> = {
 		'arrow-left-right': ArrowLeftRight,
@@ -56,7 +63,7 @@
 		'undo-2': Undo2,
 		receipt: Receipt,
 		list: List,
-		'pie-chart': PieChart,
+		'bar-chart': BarChart3,
 		user: User,
 		check: Check,
 		x: X,
@@ -72,10 +79,18 @@
 		monitor: Monitor,
 		'refresh-cw': RefreshCw,
 		tag: Tag,
-		'help-circle': HelpCircle
+		'help-circle': HelpCircle,
+		heart: Heart,
+		tv: Tv,
+		plane: Plane,
+		car: Car,
+		wallet: Wallet,
+		'arrow-down': ArrowDown,
+		'arrow-up': ArrowUp,
+		bolt: Bolt
 	};
 
 	let Component = $derived(map[name] ?? HelpCircle);
 </script>
 
-<Component {size} {strokeWidth} class={className} {...rest} />
+<Component {size} {strokeWidth} class={className} />

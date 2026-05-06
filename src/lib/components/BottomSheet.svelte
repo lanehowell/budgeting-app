@@ -31,7 +31,7 @@
 		role="dialog"
 		aria-modal="true"
 		aria-label={title ?? 'Sheet'}
-		transition:fly={{ y: '100%', duration: 350, easing: cubicOut }}
+		transition:fly={{ y: '100%', duration: 320, easing: cubicOut }}
 	>
 		<div class="handle" aria-hidden="true"></div>
 		{@render children()}
@@ -42,7 +42,7 @@
 	.overlay {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.4);
+		background: rgba(0, 0, 0, 0.36);
 		z-index: 200;
 	}
 
@@ -53,13 +53,14 @@
 		bottom: 0;
 		background: var(--bg-elevated);
 		border-radius: var(--radius-modal) var(--radius-modal) 0 0;
-		padding: 24px 24px calc(24px + env(safe-area-inset-bottom, 0px));
+		padding: 22px var(--side-pad) calc(24px + env(safe-area-inset-bottom, 0px));
 		box-shadow: var(--shadow-modal);
-		max-height: 90dvh;
+		max-height: 92dvh;
 		overflow-y: auto;
 		z-index: 201;
 		max-width: 720px;
 		margin: 0 auto;
+		border-top: 0.5px solid var(--separator);
 	}
 
 	.handle {
@@ -67,19 +68,13 @@
 		height: 4px;
 		border-radius: 999px;
 		background: var(--text-quaternary);
-		margin: -12px auto 16px;
+		margin: -8px auto 16px;
 	}
 
 	@media (min-width: 1024px) {
 		.sheet {
-			left: 240px;
-			max-width: calc(720px + 240px);
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.sheet {
-			transition: opacity 150ms !important;
+			left: 220px;
+			max-width: calc(720px + 220px);
 		}
 	}
 </style>

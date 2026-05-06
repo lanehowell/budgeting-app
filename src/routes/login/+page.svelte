@@ -29,11 +29,14 @@
 
 <div class="login">
 	<div class="card">
-		<h1 class="title-1">Budget</h1>
-		<p class="tagline subheadline">A personal budget tool that doesn't guess.</p>
+		<div class="brand">
+			<div class="mark">●</div>
+			<h1 class="title">Budget</h1>
+		</div>
+		<p class="tagline">A personal budget that doesn't guess.</p>
 
 		<button class="google-btn" onclick={handleGoogle} disabled={signingIn}>
-			<svg class="g-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+			<svg class="g-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
 				<path
 					fill="#4285F4"
 					d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -55,7 +58,7 @@
 		</button>
 
 		{#if error}
-			<p class="error footnote">{error}</p>
+			<p class="error">{error}</p>
 		{/if}
 	</div>
 </div>
@@ -75,14 +78,35 @@
 		max-width: 380px;
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: 14px;
 		text-align: center;
 		padding: 32px 24px;
 	}
 
+	.brand {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.mark {
+		color: var(--text-primary);
+		font-size: 22px;
+		line-height: 1;
+	}
+
+	.title {
+		font-size: 28px;
+		font-weight: 600;
+		letter-spacing: -0.022em;
+		color: var(--text-primary);
+	}
+
 	.tagline {
 		color: var(--text-secondary);
-		margin-bottom: 16px;
+		font-size: 14px;
+		margin-bottom: 18px;
 	}
 
 	.google-btn {
@@ -90,17 +114,17 @@
 		align-items: center;
 		justify-content: center;
 		gap: 12px;
-		padding: 14px 20px;
-		min-height: 50px;
+		padding: 13px 20px;
+		min-height: 46px;
 		border-radius: 999px;
-		background: var(--bg-tertiary);
-		color: var(--text-primary);
-		border: 1px solid var(--separator);
-		font-size: 17px;
-		font-weight: 600;
+		background: var(--text-primary);
+		color: var(--bg-primary);
+		font-size: 14px;
+		font-weight: 500;
+		letter-spacing: -0.007em;
 		transition:
 			transform 100ms var(--ease-standard),
-			background-color 150ms var(--ease-standard);
+			opacity 150ms var(--ease-standard);
 	}
 
 	.google-btn:active:not(:disabled) {
@@ -114,9 +138,13 @@
 
 	.g-icon {
 		flex-shrink: 0;
+		background: white;
+		padding: 2px;
+		border-radius: 50%;
 	}
 
 	.error {
 		color: var(--danger);
+		font-size: 12px;
 	}
 </style>

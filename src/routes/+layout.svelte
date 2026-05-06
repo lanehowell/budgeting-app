@@ -70,18 +70,18 @@
 	.content {
 		max-width: 720px;
 		margin: 0 auto;
-		padding: 0 var(--page-padding-x);
-		padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + 24px);
+		padding-top: 24px;
+		padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + 32px);
 	}
 
 	@media (min-width: 1024px) {
 		.content {
-			margin-left: 240px;
+			margin-left: 220px;
 			max-width: none;
-			padding-bottom: 24px;
-			padding-right: max(var(--page-padding-x), 32px);
-			padding-left: max(var(--page-padding-x), 32px);
-			width: calc(100% - 240px);
+			padding-bottom: 48px;
+			width: calc(100% - 220px);
+			padding-left: 0;
+			padding-right: 0;
 		}
 	}
 
