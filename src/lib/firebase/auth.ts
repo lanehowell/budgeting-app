@@ -2,8 +2,9 @@ import { browser } from '$app/environment';
 import { writable, type Readable } from 'svelte/store';
 import {
 	GoogleAuthProvider,
+	getRedirectResult,
 	onAuthStateChanged,
-	signInWithPopup,
+	signInWithRedirect,
 	signOut as fbSignOut,
 	type User
 } from 'firebase/auth';
@@ -18,6 +19,9 @@ const initial: AuthState = { user: null, loading: true };
 const internal = writable<AuthState>(initial);
 
 if (browser) {
+	getRedirectResult(auth()).catch((err) => {
+		console.error('Redirect sign-in error', err);
+	});
 	onAuthStateChanged(auth(), (user) => {
 		internal.set({ user, loading: false });
 	});
@@ -25,10 +29,9 @@ if (browser) {
 
 export const authState: Readable<AuthState> = { subscribe: internal.subscribe };
 
-export async function signInWithGoogle(): Promise<User> {
+export async function signInWithGoogle(): Promise<void> {
 	const provider = new GoogleAuthProvider();
-	const result = await signInWithPopup(auth(), provider);
-	return result.user;
+	await signInWithRedirect(auth(), provider);
 }
 
 export async function signOut(): Promise<void> {
