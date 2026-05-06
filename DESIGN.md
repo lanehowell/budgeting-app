@@ -158,7 +158,7 @@ This is the centerpiece of the categorization workflow. It must feel snappy and 
 
 - **Dismissable by: **dragging down, tapping the dimmed background, or tapping a Cancel button
 
-- **After Save: **brief checkmark flash, then auto-advance to the next uncategorized transaction (sheet stays open, content swaps with a quick fade)
+- **After Save: **brief checkmark flash, sheet dismisses, user returns to the transactions list. The user picks the next transaction to triage at their own pace — no auto-advance (see [SPEC.md](SPEC.md) Categorization Flow).
 
 ## Buttons
 
@@ -213,8 +213,6 @@ Animation is what makes the app feel native. Use spring-based easing wherever po
 - **Modal slide-up: **Translate from translateY(100%) to translateY(0) over 350ms with spring easing. Background dim fades in over 200ms.
 
 - **Tab switch: **Brief opacity crossfade (200ms). Don't slide pages horizontally — feels dated.
-
-- **Auto-advance to next transaction: **Old content fades to 0 opacity (150ms), new content fades in (150ms). Sheet doesn't move.
 
 - **Mark bill as paid: **Status badge swaps with a brief scale-up (1.0 → 1.1 → 1.0 over 250ms), bill row's amount fades to --text-tertiary.
 
