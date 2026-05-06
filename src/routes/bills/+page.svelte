@@ -4,6 +4,7 @@
 	import CheckCircle from '$lib/components/CheckCircle.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import BillSheet from '$lib/components/BillSheet.svelte';
+	import BillHistorySheet from '$lib/components/BillHistorySheet.svelte';
 	import { categories } from '$lib/data/categories';
 	import { bills } from '$lib/data/bills';
 	import { billPayments, toggleBillPaid } from '$lib/data/billPayments';
@@ -60,6 +61,7 @@
 
 	let billSheetOpen = $state(false);
 	let editingBill = $state<(Bill & { id: string }) | null>(null);
+	let historyBill = $state<(Bill & { id: string }) | null>(null);
 
 	function openAdd() {
 		editingBill = null;
@@ -74,6 +76,15 @@
 	function closeSheet() {
 		billSheetOpen = false;
 		editingBill = null;
+	}
+
+	function openHistory(b: Bill & { id: string }) {
+		billSheetOpen = false;
+		historyBill = b;
+	}
+
+	function closeHistory() {
+		historyBill = null;
 	}
 
 	const today = new Date();
@@ -284,7 +295,15 @@
 	{/if}
 </div>
 
-<BillSheet open={billSheetOpen} bill={editingBill} categories={cats} onClose={closeSheet} />
+<BillSheet
+	open={billSheetOpen}
+	bill={editingBill}
+	categories={cats}
+	onClose={closeSheet}
+	onShowHistory={openHistory}
+/>
+
+<BillHistorySheet open={historyBill !== null} bill={historyBill} payments={payments} onClose={closeHistory} />
 
 <style>
 	.page {

@@ -21,6 +21,26 @@ type MerchantRule = {
 	priority: number;
 };
 
+type Bill = {
+	id: string;
+	name: string;
+	amount: number;
+	dueDay: number;
+	categoryId: string;
+	recurrence: 'monthly' | 'biweekly' | 'yearly';
+	isActive: boolean;
+};
+
+type StoredTransaction = {
+	id: string;
+	accountId: string;
+	postedDate: string;
+	amount: number;
+	categoryId: string | null;
+	displayName: string;
+	pending: boolean;
+};
+
 type SimpleFinTransaction = {
 	id: string;
 	posted: number;
@@ -157,6 +177,27 @@ function applyMerchantRules(
 	}
 	return { categoryId: null, displayName: null };
 }
+
+function isoWeekNumber(d: Date): number {
+	const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+	const dayNum = date.getUTCDay() || 7;
+	date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+	const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+	return Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+function billPeriodKey(bill: Bill, txDate: Date): string {
+	if (bill.recurrence === 'monthly') {
+		return `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
+	}
+	if (bill.recurrence === 'yearly') {
+		return `${txDate.getFullYear()}`;
+	}
+	return `${txDate.getFullYear()}-W${String(isoWeekNumber(txDate)).padStart(2, '0')}`;
+}
+
+const AUTO_LINK_AMOUNT_TOLERANCE = 1.0;
+const AUTO_LINK_DAY_WINDOW = 5;
 
 /** Best-effort cleanup of common SimpleFIN raw-description noise. */
 function cleanDisplayName(raw: string): string {
@@ -318,8 +359,25 @@ async function runSync(uid: string) {
 		return cats.empty ? null : cats.docs[0].id;
 	})();
 
+	// Load active bills + existing payments for auto-linking.
+	const billsSnap = await db
+		.collection(`users/${uid}/bills`)
+		.where('isActive', '==', true)
+		.get();
+	const activeBills: Bill[] = billsSnap.docs.map((d) => ({
+		id: d.id,
+		...(d.data() as Omit<Bill, 'id'>)
+	}));
+	const paymentsSnap = await db.collection(`users/${uid}/billPayments`).get();
+	const paidKeys = new Set(
+		paymentsSnap.docs.map((d) => `${d.get('billId')}|${d.get('periodKey')}`)
+	);
+
+	const newlyImported: StoredTransaction[] = [];
+
 	let imported = 0;
 	let updated = 0;
+	let billsAutoLinked = 0;
 	const accountsBatch = db.batch();
 	for (const a of result.accounts) {
 		accountsBatch.set(
@@ -362,6 +420,7 @@ async function runSync(uid: string) {
 				updated += 1;
 			} else {
 				const displayName = ruleHit.displayName ?? existing.get('displayName') ?? fallbackName;
+				const txDocId = encodeURIComponent(t.id);
 				await txRef.set({
 					accountId: a.id,
 					postedDate,
@@ -378,10 +437,33 @@ async function runSync(uid: string) {
 					updatedAt: new Date().toISOString()
 				});
 				imported += 1;
+				newlyImported.push({
+					id: txDocId,
+					accountId: a.id,
+					postedDate,
+					amount,
+					categoryId: ruleHit.categoryId ?? null,
+					displayName,
+					pending: !!t.pending
+				});
+
+				// Bill auto-link: if this transaction matches an active unpaid bill,
+				// create a BillPayment and mark the bill paid for the period.
+				if (ruleHit.categoryId && amount < 0) {
+					const linked = await tryAutoLinkBill(uid, {
+						id: txDocId,
+						amount,
+						postedDate,
+						categoryId: ruleHit.categoryId
+					}, activeBills, paidKeys);
+					if (linked) billsAutoLinked += 1;
+				}
 			}
 		}
 	}
 	await accountsBatch.commit();
+
+	const transferSuggestions = await detectTransferSuggestions(uid, newlyImported);
 
 	await privateDoc(uid).set(
 		{ lastSyncAt: new Date().toISOString(), lastSyncEpoch: newCursor },
@@ -398,8 +480,110 @@ async function runSync(uid: string) {
 			.set({ lastSimpleFinSync: new Date().toISOString() }, { merge: true });
 	}
 
-	logger.info('SimpleFIN sync complete', { uid, imported, updated });
-	return { imported, updated, accounts: result.accounts?.length ?? 0 };
+	logger.info('SimpleFIN sync complete', {
+		uid,
+		imported,
+		updated,
+		billsAutoLinked,
+		transferSuggestions
+	});
+	return {
+		imported,
+		updated,
+		accounts: result.accounts?.length ?? 0,
+		billsAutoLinked,
+		transferSuggestions
+	};
+}
+
+async function tryAutoLinkBill(
+	uid: string,
+	tx: { id: string; amount: number; postedDate: string; categoryId: string },
+	activeBills: Bill[],
+	paidKeys: Set<string>
+): Promise<boolean> {
+	const txAmount = Math.abs(tx.amount);
+	const txDate = new Date(tx.postedDate);
+	for (const bill of activeBills) {
+		if (bill.categoryId !== tx.categoryId) continue;
+		if (Math.abs(bill.amount - txAmount) > AUTO_LINK_AMOUNT_TOLERANCE) continue;
+
+		const expected = new Date(txDate.getFullYear(), txDate.getMonth(), bill.dueDay);
+		const daysDiff = Math.abs((txDate.getTime() - expected.getTime()) / 86400000);
+		if (daysDiff > AUTO_LINK_DAY_WINDOW) continue;
+
+		const periodKey = billPeriodKey(bill, txDate);
+		const key = `${bill.id}|${periodKey}`;
+		if (paidKeys.has(key)) continue;
+
+		await db.collection(`users/${uid}/billPayments`).add({
+			billId: bill.id,
+			periodKey,
+			amount: txAmount,
+			paidDate: tx.postedDate,
+			transactionId: tx.id,
+			autoLinked: true
+		});
+		paidKeys.add(key);
+		logger.info('Bill auto-linked', { uid, billId: bill.id, periodKey, txId: tx.id });
+		return true;
+	}
+	return false;
+}
+
+const TRANSFER_DAY_WINDOW = 3;
+const TRANSFER_AMOUNT_TOLERANCE = 0.01;
+
+/**
+ * For each newly-imported transaction with no category yet, look for an
+ * opposite-sign tx of the same amount in another account within 3 days.
+ * If we find a pair, tag both with `transferSuggested: true` so the
+ * client can show a confirmation prompt. We never auto-categorize.
+ */
+async function detectTransferSuggestions(
+	uid: string,
+	newRows: StoredTransaction[]
+): Promise<number> {
+	const candidates = newRows.filter((r) => r.categoryId === null);
+	if (candidates.length === 0) return 0;
+
+	let suggested = 0;
+	const seen = new Set<string>();
+
+	for (const a of candidates) {
+		if (seen.has(a.id)) continue;
+		const aDate = new Date(a.postedDate);
+		const lo = new Date(aDate.getTime() - TRANSFER_DAY_WINDOW * 86400000).toISOString();
+		const hi = new Date(aDate.getTime() + TRANSFER_DAY_WINDOW * 86400000).toISOString();
+
+		const others = await db
+			.collection(`users/${uid}/transactions`)
+			.where('postedDate', '>=', lo)
+			.where('postedDate', '<=', hi)
+			.where('categoryId', '==', null)
+			.get();
+
+		for (const doc of others.docs) {
+			if (doc.id === a.id) continue;
+			const accountId = doc.get('accountId') as string;
+			if (accountId === a.accountId) continue;
+			const amount = doc.get('amount') as number;
+			if (Math.abs(amount + a.amount) > TRANSFER_AMOUNT_TOLERANCE) continue;
+			if (seen.has(doc.id)) continue;
+
+			seen.add(a.id);
+			seen.add(doc.id);
+
+			const aRef = db.doc(`users/${uid}/transactions/${a.id}`);
+			const bRef = doc.ref;
+			await aRef.set({ transferSuggested: true, transferPairId: doc.id }, { merge: true });
+			await bRef.set({ transferSuggested: true, transferPairId: a.id }, { merge: true });
+			suggested += 1;
+			logger.info('Transfer pair flagged', { uid, a: a.id, b: doc.id });
+			break;
+		}
+	}
+	return suggested;
 }
 
 // ── simpleFinScheduledSync ─────────────────────────────────────────────

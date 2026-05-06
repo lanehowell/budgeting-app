@@ -7,25 +7,22 @@ export default defineConfig({
 		sveltekit(),
 		SvelteKitPWA({
 			registerType: 'autoUpdate',
+			devOptions: { enabled: false },
 			manifest: {
-				name: 'Budgeting App',
+				name: 'Budget',
 				short_name: 'Budget',
-				description: 'Personal budgeting app',
-				theme_color: '#000000',
-				background_color: '#000000',
+				description: 'A personal budget that doesn\'t guess.',
+				theme_color: '#FAFAF8',
+				background_color: '#FAFAF8',
 				display: 'standalone',
 				orientation: 'portrait',
+				start_url: '/bills',
+				scope: '/',
 				icons: [
-					{
-						src: '/icon-192.png',
-						sizes: '192x192',
-						type: 'image/png'
-					},
-					{
-						src: '/icon-512.png',
-						sizes: '512x512',
-						type: 'image/png'
-					}
+					{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+					{ src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+					{ src: '/icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+					{ src: '/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
 				]
 			}
 		})

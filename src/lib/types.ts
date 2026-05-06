@@ -23,6 +23,8 @@ export type Transaction = {
 	notes?: string;
 	parentTransactionId?: string;
 	isSplit?: boolean;
+	transferSuggested?: boolean;
+	transferPairId?: string;
 	createdAt: string;
 	updatedAt: string;
 };
@@ -48,6 +50,7 @@ export type BillPayment = {
 	paidDate: string;
 	transactionId: string | null;
 	notes?: string;
+	autoLinked?: boolean;
 };
 
 export type MerchantRule = {

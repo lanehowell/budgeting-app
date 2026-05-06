@@ -11,9 +11,10 @@
 		bill: (Bill & { id: string }) | null;
 		categories: (Category & { id: string })[];
 		onClose: () => void;
+		onShowHistory?: (bill: Bill & { id: string }) => void;
 	};
 
-	let { open, bill, categories, onClose }: Props = $props();
+	let { open, bill, categories, onClose, onShowHistory }: Props = $props();
 
 	let name = $state('');
 	let amountStr = $state('');
@@ -176,6 +177,12 @@
 			</Button>
 		</div>
 
+		{#if mode === 'edit' && bill && onShowHistory}
+			<button class="link-btn" onclick={() => onShowHistory!(bill)}>
+				View payment history →
+			</button>
+		{/if}
+
 		{#if mode === 'edit'}
 			<button class="delete-btn" onclick={handleDelete} disabled={saving}>
 				{confirmingDelete ? 'Tap again to confirm delete' : 'Delete bill'}
@@ -283,6 +290,16 @@
 	.actions {
 		display: flex;
 		gap: 8px;
+	}
+
+	.link-btn {
+		width: 100%;
+		padding: 10px 0;
+		color: var(--text-secondary);
+		font-size: 13px;
+		font-weight: 500;
+		text-align: center;
+		min-height: 38px;
 	}
 
 	.delete-btn {

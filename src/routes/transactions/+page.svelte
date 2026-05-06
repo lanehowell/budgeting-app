@@ -9,6 +9,7 @@
 	import { transactions, updateTransaction } from '$lib/data/transactions';
 	import { addMerchantRule } from '$lib/data/merchantRules';
 	import { simpleFinSync, accounts as accountsStore } from '$lib/data/accounts';
+	import TransferSuggestionsSheet from '$lib/components/TransferSuggestionsSheet.svelte';
 	import { formatCurrency, formatDateLong } from '$lib/utils/format';
 	import type { Category, Transaction } from '$lib/types';
 
@@ -92,6 +93,13 @@
 
 	let uncategorizedCount = $derived(txList.filter((t) => t.categoryId === null).length);
 
+	let transferSuggestionsCount = $derived(
+		txList.filter((t) => t.transferSuggested && t.categoryId === null).length
+	);
+
+	let transferCategoryId = $derived(cats.find((c) => c.isTransferCategory)?.id ?? null);
+	let transferSheetOpen = $state(false);
+
 	function openSheet(tx: Transaction & { id: string }) {
 		activeId = tx.id;
 		editDisplayName = tx.displayName;
@@ -170,6 +178,18 @@
 		/>
 	</div>
 
+	{#if transferSuggestionsCount > 0}
+		<div class="pad transfer-banner-wrap">
+			<button class="transfer-banner" onclick={() => (transferSheetOpen = true)}>
+				<span class="banner-text">
+					{transferSuggestionsCount} possible
+					transfer{transferSuggestionsCount === 1 ? '' : 's'} detected
+				</span>
+				<span class="banner-cta">Review →</span>
+			</button>
+		</div>
+	{/if}
+
 	<div class="pad search-row">
 		<div class="search">
 			<Icon name="search" size={14} />
@@ -229,6 +249,13 @@
 		{/each}
 	{/if}
 </div>
+
+<TransferSuggestionsSheet
+	open={transferSheetOpen}
+	transactions={txList}
+	{transferCategoryId}
+	onClose={() => (transferSheetOpen = false)}
+/>
 
 <BottomSheet open={activeTransaction !== null} onClose={closeSheet} title="Categorize transaction">
 	{#if activeTransaction}
@@ -337,6 +364,41 @@
 
 	.toggle-row {
 		padding-bottom: 12px;
+	}
+
+	.transfer-banner-wrap {
+		padding-bottom: 12px;
+	}
+
+	.transfer-banner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		padding: 11px 14px;
+		border-radius: var(--radius-card);
+		border: 0.5px solid var(--separator);
+		background: var(--fill-1);
+		color: var(--text-primary);
+		font-size: 13px;
+		text-align: left;
+		transition:
+			transform 100ms var(--ease-standard),
+			background-color 150ms var(--ease-standard);
+	}
+
+	.transfer-banner:active {
+		transform: scale(0.99);
+	}
+
+	.banner-text {
+		font-weight: 500;
+	}
+
+	.banner-cta {
+		font-size: 12px;
+		color: var(--text-secondary);
+		font-weight: 500;
 	}
 
 	.search-row {
