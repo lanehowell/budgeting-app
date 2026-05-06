@@ -1,5 +1,6 @@
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as logger from 'firebase-functions/logger';
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
@@ -400,6 +401,59 @@ async function runSync(uid: string) {
 	logger.info('SimpleFIN sync complete', { uid, imported, updated });
 	return { imported, updated, accounts: result.accounts?.length ?? 0 };
 }
+
+// ── simpleFinScheduledSync ─────────────────────────────────────────────
+
+/**
+ * Daily auto-pull for every user with a SimpleFIN connection. Runs at
+ * 06:00 America/Los_Angeles via Cloud Scheduler (pub/sub backed).
+ *
+ * Each connection lives at /users/{uid}/__private/simplefin, so we use a
+ * collection-group query to enumerate them without keeping a separate
+ * top-level index. Each user's sync runs in its own try/catch so a single
+ * failure doesn't poison the rest.
+ */
+export const simpleFinScheduledSync = onSchedule(
+	{
+		schedule: 'every day 06:00',
+		timeZone: 'America/Los_Angeles',
+		retryCount: 1
+	},
+	async () => {
+		const start = Date.now();
+		const snap = await db.collectionGroup('__private').get();
+
+		let users = 0;
+		let imported = 0;
+		let updated = 0;
+		let failed = 0;
+
+		for (const doc of snap.docs) {
+			if (doc.ref.id !== 'simplefin') continue;
+			const uidRef = doc.ref.parent.parent;
+			if (!uidRef) continue;
+			const uid = uidRef.id;
+			users += 1;
+			try {
+				const result = await runSync(uid);
+				imported += result.imported;
+				updated += result.updated;
+			} catch (err) {
+				failed += 1;
+				const message = err instanceof Error ? err.message : String(err);
+				logger.error('Scheduled sync failed for user', { uid, message });
+			}
+		}
+
+		logger.info('Scheduled SimpleFIN sync complete', {
+			users,
+			imported,
+			updated,
+			failed,
+			ms: Date.now() - start
+		});
+	}
+);
 
 // ── simpleFinDisconnect ────────────────────────────────────────────────
 

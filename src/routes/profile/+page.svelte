@@ -329,7 +329,10 @@
 					</div>
 				{/each}
 				<div class="account-meta">
-					<span>Last sync · {fmtRelative(liveSettings?.lastSimpleFinSync ?? null)}</span>
+					<span>
+						Last sync · {fmtRelative(liveSettings?.lastSimpleFinSync ?? null)}
+						<span class="auto-tag">· auto-sync daily 6am PT</span>
+					</span>
 					<button class="link-danger" onclick={disconnectAll} disabled={disconnectingId === '*'}>
 						{disconnectingId === '*' ? 'Disconnecting…' : 'Disconnect'}
 					</button>
@@ -507,6 +510,10 @@
 		padding-top: 12px;
 		font-size: 12px;
 		color: var(--text-tertiary);
+	}
+
+	.auto-tag {
+		color: var(--text-quaternary);
 	}
 
 	.link-danger {
