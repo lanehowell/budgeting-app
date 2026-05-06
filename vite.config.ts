@@ -8,15 +8,18 @@ export default defineConfig({
 		SvelteKitPWA({
 			registerType: 'autoUpdate',
 			devOptions: { enabled: false },
+			workbox: {
+				navigateFallbackDenylist: [/^\/__\//]
+			},
 			manifest: {
 				name: 'Budget',
 				short_name: 'Budget',
 				description: 'A personal budget that doesn\'t guess.',
-				theme_color: '#FAFAF8',
-				background_color: '#FAFAF8',
+				theme_color: '#0b0b0c',
+				background_color: '#0b0b0c',
 				display: 'standalone',
 				orientation: 'portrait',
-				start_url: '/bills',
+				start_url: '/',
 				scope: '/',
 				icons: [
 					{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
