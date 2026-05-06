@@ -74,22 +74,63 @@ function maskFromAccountId(id: string): string {
 	return digits.length >= 4 ? digits.slice(-4) : digits.padStart(4, '•');
 }
 
+/**
+ * SimpleFIN access URLs embed credentials as `https://user:pass@host/...`.
+ * Node 24's undici-backed fetch refuses URLs with embedded credentials, so
+ * we extract them and send as a Basic auth header instead.
+ */
+function splitAccessUrl(accessUrl: string): { base: string; authHeader: string | null } {
+	const u = new URL(accessUrl);
+	let authHeader: string | null = null;
+	if (u.username || u.password) {
+		const user = decodeURIComponent(u.username);
+		const pass = decodeURIComponent(u.password);
+		authHeader = 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
+		u.username = '';
+		u.password = '';
+	}
+	let base = u.toString();
+	if (base.endsWith('/')) base = base.slice(0, -1);
+	return { base, authHeader };
+}
+
 async function fetchSimpleFin(
 	accessUrl: string,
 	startEpoch?: number
 ): Promise<SimpleFinResponse> {
-	const u = new URL(accessUrl + '/accounts');
-	u.searchParams.set('pending', '1');
+	const { base, authHeader } = splitAccessUrl(accessUrl);
+	const target = new URL(base + '/accounts');
+	target.searchParams.set('pending', '1');
 	if (startEpoch !== undefined) {
-		u.searchParams.set('start-date', String(startEpoch));
+		target.searchParams.set('start-date', String(startEpoch));
 	}
-	const resp = await fetch(u.toString());
+	const headers: Record<string, string> = { Accept: 'application/json' };
+	if (authHeader) headers.Authorization = authHeader;
+
+	let resp: Response;
+	try {
+		resp = await fetch(target.toString(), { headers });
+	} catch (err) {
+		throw new HttpsError(
+			'internal',
+			`SimpleFIN fetch failed: ${err instanceof Error ? err.message : String(err)}`
+		);
+	}
+
 	if (!resp.ok) {
-		const text = await resp.text();
+		const text = await resp.text().catch(() => '');
 		throw new HttpsError('internal', `SimpleFIN HTTP ${resp.status}: ${text.slice(0, 200)}`);
 	}
-	const json = (await resp.json()) as SimpleFinResponse;
-	return json;
+
+	const text = await resp.text();
+	try {
+		return JSON.parse(text) as SimpleFinResponse;
+	} catch {
+		throw new HttpsError(
+			'internal',
+			`SimpleFIN returned non-JSON: ${text.slice(0, 200)}`
+		);
+	}
 }
 
 function applyMerchantRules(
@@ -129,7 +170,20 @@ function cleanDisplayName(raw: string): string {
 
 export const simpleFinConnect = onCall(async (request) => {
 	const uid = requireUid(request);
-	const data = request.data as { setupToken?: string };
+	try {
+		return await runConnect(uid, request.data as { setupToken?: string });
+	} catch (err) {
+		if (err instanceof HttpsError) throw err;
+		const message = err instanceof Error ? err.message : String(err);
+		logger.error('simpleFinConnect unhandled', { uid, message });
+		throw new HttpsError('internal', `Unexpected error: ${message}`);
+	}
+});
+
+async function runConnect(
+	uid: string,
+	data: { setupToken?: string }
+): Promise<{ connected: true; accounts: number; warnings?: string[] }> {
 	const setupToken = data?.setupToken?.trim();
 	if (!setupToken) {
 		throw new HttpsError('invalid-argument', 'setupToken is required.');
@@ -160,14 +214,9 @@ export const simpleFinConnect = onCall(async (request) => {
 		throw new HttpsError('internal', 'SimpleFIN did not return a valid access URL.');
 	}
 
-	const accountsResp = await fetchSimpleFin(accessUrl);
-	if (accountsResp.errors?.length) {
-		throw new HttpsError(
-			'internal',
-			`SimpleFIN returned errors: ${accountsResp.errors.join('; ')}`
-		);
-	}
-
+	// Persist the access URL *before* we hit any other endpoint. The setup
+	// token is single-use; if we lose the access URL here it can't be
+	// recovered without re-issuing a setup token.
 	await privateDoc(uid).set(
 		{
 			accessUrl,
@@ -178,9 +227,15 @@ export const simpleFinConnect = onCall(async (request) => {
 		},
 		{ merge: true }
 	);
+	logger.info('SimpleFIN connect: access URL stored', { uid });
+
+	const accountsResp = await fetchSimpleFin(accessUrl);
+	if (accountsResp.errors?.length) {
+		logger.warn('SimpleFIN returned errors', { uid, errors: accountsResp.errors });
+	}
 
 	const batch = db.batch();
-	for (const a of accountsResp.accounts) {
+	for (const a of accountsResp.accounts ?? []) {
 		batch.set(
 			db.doc(`users/${uid}/accounts/${a.id}`),
 			{
@@ -200,16 +255,33 @@ export const simpleFinConnect = onCall(async (request) => {
 	}
 	await batch.commit();
 
-	logger.info('SimpleFIN connect: accounts written', { uid, count: accountsResp.accounts.length });
+	logger.info('SimpleFIN connect: accounts written', {
+		uid,
+		count: accountsResp.accounts?.length ?? 0
+	});
 
-	return { connected: true, accounts: accountsResp.accounts.length };
-});
+	return {
+		connected: true,
+		accounts: accountsResp.accounts?.length ?? 0,
+		...(accountsResp.errors?.length ? { warnings: accountsResp.errors } : {})
+	};
+}
 
 // ── simpleFinSync ──────────────────────────────────────────────────────
 
 export const simpleFinSync = onCall(async (request) => {
 	const uid = requireUid(request);
+	try {
+		return await runSync(uid);
+	} catch (err) {
+		if (err instanceof HttpsError) throw err;
+		const message = err instanceof Error ? err.message : String(err);
+		logger.error('simpleFinSync unhandled', { uid, message });
+		throw new HttpsError('internal', `Unexpected error: ${message}`);
+	}
+});
 
+async function runSync(uid: string) {
 	const priv = await privateDoc(uid).get();
 	if (!priv.exists) {
 		throw new HttpsError('failed-precondition', 'No SimpleFIN connection. Connect first.');
@@ -326,26 +398,29 @@ export const simpleFinSync = onCall(async (request) => {
 	}
 
 	logger.info('SimpleFIN sync complete', { uid, imported, updated });
-	return { imported, updated, accounts: result.accounts.length };
-});
+	return { imported, updated, accounts: result.accounts?.length ?? 0 };
+}
 
 // ── simpleFinDisconnect ────────────────────────────────────────────────
 
 export const simpleFinDisconnect = onCall(async (request) => {
 	const uid = requireUid(request);
+	try {
+		const accountsSnap = await db.collection(`users/${uid}/accounts`).get();
+		const batch = db.batch();
+		for (const d of accountsSnap.docs) batch.delete(d.ref);
+		await batch.commit();
 
-	const accountsSnap = await db.collection(`users/${uid}/accounts`).get();
-	const batch = db.batch();
-	for (const d of accountsSnap.docs) batch.delete(d.ref);
-	await batch.commit();
+		await privateDoc(uid).delete();
+		await db
+			.doc(`users/${uid}/meta/settings`)
+			.set({ lastSimpleFinSync: FieldValue.delete() }, { merge: true });
 
-	await privateDoc(uid).delete();
-	await db.doc(`users/${uid}/meta/settings`).set(
-		{
-			lastSimpleFinSync: FieldValue.delete()
-		},
-		{ merge: true }
-	);
-
-	return { disconnected: true };
+		return { disconnected: true };
+	} catch (err) {
+		if (err instanceof HttpsError) throw err;
+		const message = err instanceof Error ? err.message : String(err);
+		logger.error('simpleFinDisconnect unhandled', { uid, message });
+		throw new HttpsError('internal', `Unexpected error: ${message}`);
+	}
 });
