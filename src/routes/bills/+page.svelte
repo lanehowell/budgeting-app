@@ -347,7 +347,8 @@
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
-		padding: 18px 0 10px;
+		padding-top: 18px;
+		padding-bottom: 10px;
 	}
 
 	.lab {
