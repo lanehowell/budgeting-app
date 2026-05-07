@@ -5,23 +5,21 @@
 	import {
 		signInWithGoogle,
 		signInWithGoogleIdToken,
-		isIosStandalonePwa,
 		authState
 	} from '$lib/firebase/auth';
 
 	let signingIn = $state(false);
 	let error = $state<string | null>(null);
 
-	// Detect GIS-vs-popup synchronously at component construction so the right
-	// button renders on first paint. If we defer this to $effect, the popup
-	// button is briefly visible on iOS standalone PWAs — and signInWithPopup
-	// opens a new browser tab, which kicks the user out of standalone mode.
-	function shouldUseGis(): boolean {
-		if (!browser) return false;
-		return isIosStandalonePwa() && !!PUBLIC_GOOGLE_CLIENT_ID;
-	}
-
-	let useGis = $state(shouldUseGis());
+	// Always prefer GIS when a Google client ID is configured. GIS uses an
+	// in-page iframe modal that works on every platform, including iOS
+	// standalone PWAs (where signInWithPopup would open a new browser tab and
+	// kick the user out of standalone). Platform detection is removed entirely
+	// — relying on isIosStandalonePwa() was fragile (iPad with Request Desktop
+	// Site spoofs Mac UA, etc.) and any false negative meant the popup
+	// rendered and broke standalone mode. The Firebase popup path now exists
+	// only as a fallback for environments without a client ID (dev / emulator).
+	let useGis = $state(browser && !!PUBLIC_GOOGLE_CLIENT_ID);
 	let gisContainer: HTMLDivElement | undefined = $state();
 
 	$effect(() => {
@@ -86,15 +84,9 @@
 	}
 
 	async function handleGoogle() {
-		// Defensive guard: signInWithPopup opens a new browser tab on iOS
-		// standalone PWA, which kicks the user out. Force a re-detection and
-		// switch to GIS if applicable. Should be unreachable now that useGis
-		// is detected synchronously, but kept as a safety net.
-		if (browser && isIosStandalonePwa() && PUBLIC_GOOGLE_CLIENT_ID) {
-			useGis = true;
-			renderGisButton();
-			return;
-		}
+		// Only reachable when no client ID is configured (dev / emulator).
+		// In production with a client ID set, useGis is true and the GIS
+		// button renders instead of this popup-based fallback.
 		signingIn = true;
 		error = null;
 		try {
