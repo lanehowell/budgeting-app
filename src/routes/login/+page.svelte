@@ -5,13 +5,18 @@
 	import {
 		signInWithGoogle,
 		signInWithGoogleIdToken,
-		isIosStandalonePwa,
 		authState
 	} from '$lib/firebase/auth';
 
 	let signingIn = $state(false);
 	let error = $state<string | null>(null);
-	let useGis = $state(false);
+
+	// Always prefer GIS when a client ID is configured. GIS uses an in-page
+	// iframe modal that works on every platform, including iOS standalone PWAs
+	// (where signInWithPopup would open a new browser tab and kick the user
+	// out of standalone). The Firebase popup path stays only as a fallback for
+	// environments without a Google client ID.
+	let useGis = $state(browser && !!PUBLIC_GOOGLE_CLIENT_ID);
 	let gisContainer: HTMLDivElement | undefined = $state();
 
 	$effect(() => {
@@ -24,8 +29,6 @@
 	});
 
 	$effect(() => {
-		if (!browser) return;
-		useGis = isIosStandalonePwa() && !!PUBLIC_GOOGLE_CLIENT_ID;
 		if (useGis) renderGisButton();
 	});
 
@@ -78,6 +81,8 @@
 	}
 
 	async function handleGoogle() {
+		// Only reachable when no client ID is configured (dev / emulator).
+		// In production, useGis is true and the GIS button is rendered instead.
 		signingIn = true;
 		error = null;
 		try {
