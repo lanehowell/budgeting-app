@@ -86,6 +86,46 @@
 	color-scheme: dark;
 }
 
+/* Accent palette — light variant by default, dark variant override below.
+   `mono` keeps the existing --accent (no override). */
+[data-accent='blue'] {
+	--accent: #2563eb;
+}
+[data-accent='green'] {
+	--accent: #16a34a;
+}
+[data-accent='plum'] {
+	--accent: #9333ea;
+}
+[data-accent='amber'] {
+	--accent: #d97706;
+}
+[data-accent='teal'] {
+	--accent: #0d9488;
+}
+[data-accent='rose'] {
+	--accent: #e11d48;
+}
+
+[data-theme='dark'][data-accent='blue'] {
+	--accent: #60a5fa;
+}
+[data-theme='dark'][data-accent='green'] {
+	--accent: #4ade80;
+}
+[data-theme='dark'][data-accent='plum'] {
+	--accent: #c084fc;
+}
+[data-theme='dark'][data-accent='amber'] {
+	--accent: #fbbf24;
+}
+[data-theme='dark'][data-accent='teal'] {
+	--accent: #5eead4;
+}
+[data-theme='dark'][data-accent='rose'] {
+	--accent: #fb7185;
+}
+
 @media (min-width: 768px) {
 	:root {
 		--side-pad: 28px;

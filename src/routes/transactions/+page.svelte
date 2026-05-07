@@ -224,7 +224,7 @@
 									<CategoryGlyph
 										icon={cat?.icon ?? 'help-circle'}
 										size={28}
-										color={cat ? 'var(--text-secondary)' : 'var(--text-tertiary)'}
+										color={cat?.color ?? 'var(--text-tertiary)'}
 									/>
 									<span class="title-block">
 										<span class="title-line">

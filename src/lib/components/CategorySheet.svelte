@@ -36,8 +36,24 @@
 		'repeat'
 	];
 
+	const COLOR_OPTIONS = [
+		'#64748b',
+		'#3b82f6',
+		'#6366f1',
+		'#a855f7',
+		'#ec4899',
+		'#f43f5e',
+		'#f97316',
+		'#f59e0b',
+		'#84cc16',
+		'#22c55e',
+		'#14b8a6',
+		'#78716c'
+	];
+
 	let name = $state('');
 	let icon = $state(ICON_OPTIONS[0]);
+	let color = $state(COLOR_OPTIONS[0]);
 	let excludeFromSpending = $state(false);
 	let saving = $state(false);
 	let confirmingDelete = $state(false);
@@ -50,10 +66,12 @@
 		if (category) {
 			name = category.name;
 			icon = category.icon;
+			color = category.color || COLOR_OPTIONS[0];
 			excludeFromSpending = category.excludeFromSpending;
 		} else {
 			name = '';
 			icon = ICON_OPTIONS[0];
+			color = COLOR_OPTIONS[0];
 			excludeFromSpending = false;
 		}
 		confirmingDelete = false;
@@ -69,13 +87,14 @@
 				await updateCategory(category.id, {
 					name: name.trim(),
 					icon,
+					color,
 					excludeFromSpending: isLocked ? true : excludeFromSpending
 				});
 			} else {
 				await addCategory({
 					name: name.trim(),
 					icon,
-					color: '#8E8E93',
+					color,
 					isTransferCategory: false,
 					excludeFromSpending,
 					sortOrder: existingCount + 1
@@ -136,6 +155,22 @@
 					>
 						<CategoryGlyph icon={opt} size={24} color="currentColor" />
 					</button>
+				{/each}
+			</div>
+		</div>
+
+		<div class="field">
+			<span class="eyebrow">Color</span>
+			<div class="color-grid">
+				{#each COLOR_OPTIONS as swatch (swatch)}
+					<button
+						class="color-opt"
+						class:selected={color === swatch}
+						aria-label="Color {swatch}"
+						aria-pressed={color === swatch}
+						style="--swatch: {swatch}"
+						onclick={() => (color = swatch)}
+					></button>
 				{/each}
 			</div>
 		</div>
@@ -245,6 +280,44 @@
 		background: var(--text-primary);
 		border-color: var(--text-primary);
 		color: var(--bg-primary);
+	}
+
+	.color-grid {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+		gap: 6px;
+	}
+
+	.color-opt {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 44px;
+		min-width: 44px;
+		border-radius: 999px;
+		background: transparent;
+		border: 2px solid transparent;
+		transition:
+			border-color 150ms var(--ease-standard),
+			transform 100ms var(--ease-standard);
+		position: relative;
+	}
+
+	.color-opt::after {
+		content: '';
+		width: 24px;
+		height: 24px;
+		border-radius: 999px;
+		background: var(--swatch);
+		box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+	}
+
+	.color-opt.selected {
+		border-color: var(--text-primary);
+	}
+
+	.color-opt:active:not(.selected) {
+		transform: scale(0.92);
 	}
 
 	.setting-row {
