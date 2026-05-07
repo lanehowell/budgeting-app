@@ -901,7 +901,8 @@
 		display: flex;
 		align-items: baseline;
 		justify-content: space-between;
-		padding: 8px 0 8px;
+		padding-top: 8px;
+		padding-bottom: 8px;
 	}
 
 	.day-label {
