@@ -39,7 +39,7 @@
 		grid-auto-flow: column;
 		grid-auto-columns: 1fr;
 		padding: 2px;
-		background: var(--fill-1);
+		background: var(--seg-bg);
 		border-radius: 9px;
 		height: 32px;
 	}
@@ -48,12 +48,12 @@
 		position: absolute;
 		top: 2px;
 		bottom: 2px;
-		background: var(--bg-tertiary);
+		background: var(--seg-thumb);
 		border-radius: 7px;
 		box-shadow:
-			0 1px 2px rgba(0, 0, 0, 0.08),
+			0 1px 3px rgba(0, 0, 0, 0.08),
 			0 0 0 0.5px rgba(0, 0, 0, 0.04);
-		transition: left 220ms cubic-bezier(0.4, 0, 0.2, 1);
+		transition: left 200ms cubic-bezier(0.3, 0.7, 0.4, 1);
 	}
 
 	:global([data-theme='dark']) .thumb {
@@ -65,15 +65,13 @@
 		z-index: 1;
 		font-size: 13px;
 		font-weight: 500;
-		color: var(--text-secondary);
-		transition:
-			color 180ms var(--ease-standard),
-			font-weight 180ms var(--ease-standard);
+		color: var(--text-primary);
+		letter-spacing: -0.08px;
+		transition: font-weight 180ms var(--ease-standard);
 		min-height: 28px;
 	}
 
 	.opt.active {
-		color: var(--text-primary);
 		font-weight: 600;
 	}
 </style>

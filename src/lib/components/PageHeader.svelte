@@ -1,19 +1,27 @@
 <script lang="ts">
 	type Props = {
 		title: string;
+		subtitle?: string;
+		/** @deprecated use `subtitle` for descriptive text below the title. */
 		eyebrow?: string;
 		actions?: import('svelte').Snippet;
 	};
 
-	let { title, eyebrow, actions }: Props = $props();
+	let { title, subtitle, eyebrow, actions }: Props = $props();
+
+	// Back-compat: existing pages still pass `eyebrow={...}`. Treat it as a
+	// subtitle (rendered below title) per the new design.
+	let sub = $derived(subtitle ?? eyebrow);
 </script>
 
 <header class="page-header">
-	{#if eyebrow}
-		<div class="eyebrow">{eyebrow}</div>
-	{/if}
 	<div class="row">
-		<h1 class="title">{title}</h1>
+		<div class="text-block">
+			<h1 class="title">{title}</h1>
+			{#if sub}
+				<div class="subtitle">{sub}</div>
+			{/if}
+		</div>
 		{#if actions}
 			<div class="actions">{@render actions()}</div>
 		{/if}
@@ -22,7 +30,7 @@
 
 <style>
 	.page-header {
-		padding: 12px 0 18px;
+		padding: 18px 0 14px;
 	}
 
 	.row {
@@ -32,13 +40,25 @@
 		gap: 12px;
 	}
 
-	.title {
-		font-size: 30px;
-		line-height: 1.05;
-		font-weight: 600;
-		letter-spacing: -0.027em;
-		color: var(--text-primary);
+	.text-block {
+		min-width: 0;
 		flex: 1 1 auto;
+	}
+
+	.title {
+		font-size: 32px;
+		line-height: 1.1;
+		font-weight: 700;
+		letter-spacing: -0.025em;
+		color: var(--text-primary);
+	}
+
+	.subtitle {
+		margin-top: 4px;
+		font-size: 14px;
+		font-weight: 500;
+		color: var(--text-secondary);
+		letter-spacing: -0.005em;
 	}
 
 	.actions {

@@ -1,32 +1,45 @@
 :root {
-	/* Paper-like, cooler than iOS */
-	--bg-primary: #fafaf8;
-	--bg-secondary: #f3f3f0;
+	/* iOS-native cool light gray, with floating white cards */
+	--bg-primary: #f2f2f7;
+	--bg-secondary: #e9e9ee;
 	--bg-tertiary: #ffffff;
 	--bg-elevated: #ffffff;
+	--card: #ffffff;
 
-	/* Opacity-based text hierarchy on near-black */
-	--text-primary: #0a0a0a;
-	--text-secondary: rgba(10, 10, 10, 0.58);
-	--text-tertiary: rgba(10, 10, 10, 0.38);
-	--text-quaternary: rgba(10, 10, 10, 0.2);
+	/* Tab bar — translucent, blurred. Matches iOS Liquid Glass tab bar. */
+	--tabbar-bg: rgba(255, 255, 255, 0.82);
+	--tabbar-border: rgba(60, 60, 67, 0.12);
+
+	/* Opacity-based text hierarchy on near-black (slightly bluer ink for iOS feel) */
+	--text-primary: #0d0d10;
+	--text-secondary: rgba(13, 13, 16, 0.6);
+	--text-tertiary: rgba(13, 13, 16, 0.42);
+	--text-quaternary: rgba(13, 13, 16, 0.22);
 
 	/* Subtle fills + hairline separators */
-	--fill-1: rgba(0, 0, 0, 0.04);
-	--fill-2: rgba(0, 0, 0, 0.025);
-	--separator: rgba(0, 0, 0, 0.08);
-	--separator-strong: rgba(0, 0, 0, 0.12);
+	--fill-1: rgba(60, 60, 67, 0.06);
+	--fill-2: rgba(60, 60, 67, 0.035);
+	--separator: rgba(60, 60, 67, 0.12);
+	--separator-strong: rgba(60, 60, 67, 0.28);
+	--track: rgba(60, 60, 67, 0.12);
+	--seg-bg: rgba(120, 120, 128, 0.16);
+	--seg-thumb: #ffffff;
 
-	/* Semantic — deeper, less candy-bright than iOS */
-	--accent: #0a0a0a;
-	--success: #15803d;
-	--warning: #a16207;
-	--danger: #b91c1c;
+	/* Semantic — vivid iOS values */
+	--accent: #3b5fff;
+	--accent-soft: rgba(59, 95, 255, 0.14);
+	--success: #30d158;
+	--success-soft: rgba(48, 209, 88, 0.14);
+	--warning: #ff9500;
+	--warning-soft: rgba(255, 149, 0, 0.14);
+	--danger: #ff453a;
+	--danger-soft: rgba(255, 69, 58, 0.14);
 
 	/* Geometry */
-	--radius-card: 12px;
-	--radius-modal: 16px;
-	--radius-input: 10px;
+	--radius-card: 16px;
+	--radius-card-tight: 12px;
+	--radius-modal: 18px;
+	--radius-input: 12px;
 	--radius-button: 999px;
 
 	--shadow-card: none;
@@ -61,69 +74,93 @@
 }
 
 [data-theme='dark'] {
-	--bg-primary: #0b0b0c;
-	--bg-secondary: #141416;
-	--bg-tertiary: #141416;
-	--bg-elevated: #141416;
+	--bg-primary: #000000;
+	--bg-secondary: #0a0a0c;
+	--bg-tertiary: #1c1c1e;
+	--bg-elevated: #1c1c1e;
+	--card: #1c1c1e;
 
-	--text-primary: #f5f5f4;
-	--text-secondary: rgba(245, 245, 244, 0.62);
-	--text-tertiary: rgba(245, 245, 244, 0.38);
-	--text-quaternary: rgba(245, 245, 244, 0.2);
+	--tabbar-bg: rgba(28, 28, 30, 0.8);
+	--tabbar-border: rgba(84, 84, 88, 0.4);
 
-	--fill-1: rgba(255, 255, 255, 0.08);
-	--fill-2: rgba(255, 255, 255, 0.05);
-	--separator: rgba(255, 255, 255, 0.07);
-	--separator-strong: rgba(255, 255, 255, 0.12);
+	--text-primary: #ffffff;
+	--text-secondary: rgba(235, 235, 245, 0.6);
+	--text-tertiary: rgba(235, 235, 245, 0.4);
+	--text-quaternary: rgba(235, 235, 245, 0.22);
 
-	--accent: #f5f5f4;
-	--success: #4ade80;
-	--warning: #fbbf24;
-	--danger: #f87171;
+	--fill-1: rgba(120, 120, 128, 0.18);
+	--fill-2: rgba(120, 120, 128, 0.1);
+	--separator: rgba(84, 84, 88, 0.4);
+	--separator-strong: rgba(120, 120, 128, 0.5);
+	--track: rgba(120, 120, 128, 0.24);
+	--seg-bg: rgba(120, 120, 128, 0.32);
+	--seg-thumb: #636366;
+
+	--accent: #5a78ff;
+	--accent-soft: rgba(90, 120, 255, 0.18);
+	--success: #30d158;
+	--success-soft: rgba(48, 209, 88, 0.2);
+	--warning: #ff9f0a;
+	--warning-soft: rgba(255, 159, 10, 0.2);
+	--danger: #ff453a;
+	--danger-soft: rgba(255, 69, 58, 0.2);
 
 	--shadow-modal: 0 -8px 32px rgba(0, 0, 0, 0.5);
 
 	color-scheme: dark;
 }
 
-/* Accent palette — light variant by default, dark variant override below.
-   `mono` keeps the existing --accent (no override). */
-[data-accent='blue'] {
-	--accent: #2563eb;
+/* Accent palette. `blue` is the default (no override needed when data-accent
+   is unset or 'blue'). `mono` falls back to ink. Each accent has a paired
+   --accent-soft (~14% rgba) used for tinted chips, badges, and pressed states. */
+[data-accent='mono'] {
+	--accent: #0d0d10;
+	--accent-soft: rgba(13, 13, 16, 0.08);
 }
 [data-accent='green'] {
-	--accent: #16a34a;
+	--accent: #30d158;
+	--accent-soft: rgba(48, 209, 88, 0.14);
 }
 [data-accent='plum'] {
-	--accent: #9333ea;
+	--accent: #bf5af2;
+	--accent-soft: rgba(191, 90, 242, 0.14);
 }
 [data-accent='amber'] {
-	--accent: #d97706;
+	--accent: #ff9500;
+	--accent-soft: rgba(255, 149, 0, 0.14);
 }
 [data-accent='teal'] {
-	--accent: #0d9488;
+	--accent: #32ade6;
+	--accent-soft: rgba(50, 173, 230, 0.14);
 }
 [data-accent='rose'] {
-	--accent: #e11d48;
+	--accent: #ff3b30;
+	--accent-soft: rgba(255, 59, 48, 0.14);
 }
 
-[data-theme='dark'][data-accent='blue'] {
-	--accent: #60a5fa;
+[data-theme='dark'][data-accent='mono'] {
+	--accent: #ffffff;
+	--accent-soft: rgba(255, 255, 255, 0.12);
 }
 [data-theme='dark'][data-accent='green'] {
-	--accent: #4ade80;
+	--accent: #30d158;
+	--accent-soft: rgba(48, 209, 88, 0.2);
 }
 [data-theme='dark'][data-accent='plum'] {
-	--accent: #c084fc;
+	--accent: #d1a3ff;
+	--accent-soft: rgba(209, 163, 255, 0.2);
 }
 [data-theme='dark'][data-accent='amber'] {
-	--accent: #fbbf24;
+	--accent: #ff9f0a;
+	--accent-soft: rgba(255, 159, 10, 0.2);
 }
 [data-theme='dark'][data-accent='teal'] {
-	--accent: #5eead4;
+	--accent: #64d2ff;
+	--accent-soft: rgba(100, 210, 255, 0.2);
 }
 [data-theme='dark'][data-accent='rose'] {
-	--accent: #fb7185;
+	--accent: #ff6961;
+	--accent-soft: rgba(255, 105, 97, 0.2);
 }
 
 @media (min-width: 768px) {
@@ -221,12 +258,12 @@ ol {
 	border-radius: 4px;
 }
 
-/* Type system — Things 3 / Linear style: lighter weights, tighter tracking */
+/* Type system — iOS-native large display titles, tight tracking */
 .title-large {
-	font-size: 30px;
-	line-height: 1.05;
-	font-weight: 600;
-	letter-spacing: -0.027em;
+	font-size: 32px;
+	line-height: 1.1;
+	font-weight: 700;
+	letter-spacing: -0.025em;
 }
 
 .title-1 {
