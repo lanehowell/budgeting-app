@@ -15,6 +15,7 @@
 	import type { AccountDoc } from '$lib/data/accounts';
 	import { authState, signOut } from '$lib/firebase/auth';
 	import { theme, type ThemeChoice } from '$lib/stores/theme';
+	import { accent, ACCENT_OPTIONS, type AccentChoice } from '$lib/stores/accent';
 	import { seedMockData, clearMockData } from '$lib/dev/seedMock';
 	import { getCurrentPeriod } from '$lib/utils/payPeriod';
 	import type { Category, MerchantRule, Settings } from '$lib/types';
@@ -134,6 +135,19 @@
 		theme.set('system');
 	}
 
+	let accentChoice = $state<AccentChoice>('mono');
+	$effect(() => accent.choice.subscribe((v) => (accentChoice = v)));
+
+	const ACCENT_SWATCHES: Record<AccentChoice, string> = {
+		mono: 'var(--text-primary)',
+		blue: '#3b82f6',
+		green: '#22c55e',
+		plum: '#a855f7',
+		amber: '#f59e0b',
+		teal: '#14b8a6',
+		rose: '#f43f5e'
+	};
+
 	let initials = $derived.by(() => {
 		const name = user?.displayName ?? user?.email ?? '';
 		const parts = name.split(/[\s@.]+/).filter(Boolean);
@@ -189,7 +203,11 @@
 
 	<div class="pad account">
 		<div class="account-row">
-			<div class="avatar">{initials}</div>
+			{#if user?.photoURL}
+				<img class="avatar avatar-img" src={user.photoURL} alt="" referrerpolicy="no-referrer" />
+			{:else}
+				<div class="avatar">{initials}</div>
+			{/if}
 			<div class="acc-text">
 				<div class="acc-name">{user?.displayName ?? 'You'}</div>
 				<div class="acc-email">{user?.email ?? ''}</div>
@@ -206,7 +224,7 @@
 				<span class="setting-label">Dark mode</span>
 				<Switch value={darkOn} onChange={toggleDark} ariaLabel="Dark mode" />
 			</div>
-			<div class="setting-row last">
+			<div class="setting-row">
 				<span class="setting-label">Match system theme</span>
 				<button
 					class="text-link"
@@ -215,6 +233,22 @@
 				>
 					{themeChoice === 'system' ? 'On' : 'Use system'}
 				</button>
+			</div>
+			<div class="setting-row last accent-row">
+				<span class="setting-label">Accent</span>
+				<div class="accent-swatches">
+					{#each ACCENT_OPTIONS as opt (opt)}
+						<button
+							class="accent-opt"
+							class:selected={accentChoice === opt}
+							class:mono={opt === 'mono'}
+							aria-label="Accent {opt}"
+							aria-pressed={accentChoice === opt}
+							style="--swatch: {ACCENT_SWATCHES[opt]}"
+							onclick={() => accent.set(opt)}
+						></button>
+					{/each}
+				</div>
 			</div>
 		</div>
 	</section>
@@ -450,6 +484,11 @@
 		flex-shrink: 0;
 	}
 
+	.avatar-img {
+		object-fit: cover;
+		display: block;
+	}
+
 	.acc-text {
 		flex: 1;
 		min-width: 0;
@@ -614,6 +653,51 @@
 		font-size: 13px;
 		color: var(--text-primary);
 		font-weight: 500;
+	}
+
+	.accent-row {
+		gap: 16px;
+	}
+
+	.accent-swatches {
+		display: flex;
+		gap: 6px;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+
+	.accent-opt {
+		width: 28px;
+		height: 28px;
+		border-radius: 999px;
+		border: 2px solid transparent;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		transition:
+			border-color 150ms var(--ease-standard),
+			transform 100ms var(--ease-standard);
+	}
+
+	.accent-opt::after {
+		content: '';
+		width: 18px;
+		height: 18px;
+		border-radius: 999px;
+		background: var(--swatch);
+		box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+	}
+
+	.accent-opt.mono::after {
+		background: linear-gradient(135deg, var(--text-primary) 50%, var(--text-tertiary) 50%);
+	}
+
+	.accent-opt.selected {
+		border-color: var(--text-primary);
+	}
+
+	.accent-opt:active:not(.selected) {
+		transform: scale(0.92);
 	}
 
 	.dev-row {

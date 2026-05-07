@@ -17,6 +17,12 @@
 					var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 					var resolved = stored === 'dark' || (stored !== 'light' && prefersDark) ? 'dark' : 'light';
 					document.documentElement.setAttribute('data-theme', resolved);
+					var accent = localStorage.getItem('accent');
+					var validAccents = ['mono', 'blue', 'green', 'plum', 'amber', 'teal', 'rose'];
+					document.documentElement.setAttribute(
+						'data-accent',
+						validAccents.indexOf(accent) >= 0 ? accent : 'mono'
+					);
 				} catch (e) {
 					/* noop */
 				}

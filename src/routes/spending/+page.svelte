@@ -42,7 +42,13 @@
 
 	let total = $derived(spendingTxs.reduce((sum, t) => sum + Math.abs(t.amount), 0));
 
-	type CategorySum = { categoryId: string; name: string; icon: string; total: number };
+	type CategorySum = {
+		categoryId: string;
+		name: string;
+		icon: string;
+		color: string;
+		total: number;
+	};
 
 	let byCategory = $derived.by((): CategorySum[] => {
 		const map = new Map<string, CategorySum>();
@@ -56,6 +62,7 @@
 					categoryId: cat.id,
 					name: cat.name,
 					icon: cat.icon,
+					color: cat.color,
 					total: Math.abs(t.amount)
 				});
 			}
@@ -162,7 +169,7 @@
 							}
 						}}
 					>
-						<CategoryGlyph icon={row.icon} size={28} />
+						<CategoryGlyph icon={row.icon} size={28} color={row.color ?? 'var(--text-secondary)'} />
 						<span class="title-block">
 							<span class="title-line">
 								<span class="title-text">{row.name}</span>
@@ -183,7 +190,11 @@
 					{@const pct = m.total / maxMerchant}
 					{@const cat = categoryById.get(m.categoryId)}
 					<li class="row" class:last={i === byMerchant.length - 1}>
-						<CategoryGlyph icon={cat?.icon ?? 'help-circle'} size={28} />
+						<CategoryGlyph
+							icon={cat?.icon ?? 'help-circle'}
+							size={28}
+							color={cat?.color ?? 'var(--text-secondary)'}
+						/>
 						<span class="title-block">
 							<span class="title-line">
 								<span class="title-text">{m.merchant}</span>

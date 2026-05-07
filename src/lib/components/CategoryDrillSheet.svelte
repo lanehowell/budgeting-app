@@ -21,7 +21,7 @@
 	{#if category}
 		<div class="body">
 			<div class="head">
-				<CategoryGlyph icon={category.icon} size={32} />
+				<CategoryGlyph icon={category.icon} size={32} color={category.color} />
 				<div class="head-text">
 					<div class="head-name">{category.name}</div>
 					<div class="head-period">{periodLabel}</div>
