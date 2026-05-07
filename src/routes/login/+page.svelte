@@ -57,6 +57,15 @@
 			g.accounts.id.initialize({
 				client_id: PUBLIC_GOOGLE_CLIENT_ID,
 				callback: handleGisCredential,
+				// FedCM (Federated Credential Management) is a browser-native
+				// in-page credential dialog. The default GIS flow opens a real
+				// popup window, which iOS standalone PWAs treat as a new Safari
+				// tab — kicking the user out of standalone. Forcing FedCM keeps
+				// the dialog in-page and works in iOS 17+ standalone PWAs.
+				// Outside of standalone, FedCM falls back gracefully if the
+				// browser doesn't support it.
+				use_fedcm_for_button: true,
+				use_fedcm_for_prompt: true,
 				ux_mode: 'popup',
 				auto_select: false,
 				cancel_on_tap_outside: true
