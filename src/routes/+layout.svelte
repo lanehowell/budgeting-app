@@ -70,7 +70,7 @@
 	.content {
 		max-width: 720px;
 		margin: 0 auto;
-		padding-top: 24px;
+		padding-top: calc(env(safe-area-inset-top, 0px) + 24px);
 		padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px) + 32px);
 	}
 

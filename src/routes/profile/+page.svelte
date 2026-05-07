@@ -15,7 +15,7 @@
 	import type { AccountDoc } from '$lib/data/accounts';
 	import { authState, signOut } from '$lib/firebase/auth';
 	import { theme, type ThemeChoice } from '$lib/stores/theme';
-	import { seedMockData } from '$lib/dev/seedMock';
+	import { seedMockData, clearMockData } from '$lib/dev/seedMock';
 	import { getCurrentPeriod } from '$lib/utils/payPeriod';
 	import type { Category, MerchantRule, Settings } from '$lib/types';
 
@@ -143,6 +143,7 @@
 	});
 
 	let seedingMock = $state(false);
+	let clearingMock = $state(false);
 	let seedMessage = $state<string | null>(null);
 	async function loadMock() {
 		seedingMock = true;
@@ -155,6 +156,23 @@
 			seedMessage = e instanceof Error ? e.message : 'Failed to seed.';
 		} finally {
 			seedingMock = false;
+		}
+	}
+
+	async function clearMock() {
+		if (!confirm('Remove all mock-seeded transactions, bills, categories, and rules? Real data is unaffected.')) {
+			return;
+		}
+		clearingMock = true;
+		seedMessage = null;
+		try {
+			const result = await clearMockData();
+			seedMessage = `Cleared ${result.deleted} mock records.`;
+		} catch (e) {
+			console.error(e);
+			seedMessage = e instanceof Error ? e.message : 'Failed to clear.';
+		} finally {
+			clearingMock = false;
 		}
 	}
 
@@ -345,21 +363,26 @@
 		{/if}
 	</section>
 
-	{#if dev}
-		<section class="group">
-			<div class="pad section-head">
-				<span class="eyebrow">Developer</span>
-			</div>
-			<div class="pad">
-				<button class="dev-btn" onclick={loadMock} disabled={seedingMock}>
-					{seedingMock ? 'Loading…' : 'Load mock data'}
-				</button>
-				{#if seedMessage}
-					<p class="seed-msg">{seedMessage}</p>
+	<section class="group">
+		<div class="pad section-head">
+			<span class="eyebrow">Maintenance</span>
+		</div>
+		<div class="pad">
+			<div class="dev-row">
+				{#if dev}
+					<button class="dev-btn" onclick={loadMock} disabled={seedingMock || clearingMock}>
+						{seedingMock ? 'Loading…' : 'Load mock data'}
+					</button>
 				{/if}
+				<button class="dev-btn danger" onclick={clearMock} disabled={seedingMock || clearingMock}>
+					{clearingMock ? 'Clearing…' : 'Clear mock data'}
+				</button>
 			</div>
-		</section>
-	{/if}
+			{#if seedMessage}
+				<p class="seed-msg">{seedMessage}</p>
+			{/if}
+		</div>
+	</section>
 
 	<PayPeriodSheet
 		open={payPeriodSheetOpen}
@@ -593,6 +616,12 @@
 		font-weight: 500;
 	}
 
+	.dev-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
 	.dev-btn {
 		display: inline-flex;
 		align-items: center;
@@ -605,6 +634,10 @@
 		font-size: 13px;
 		font-weight: 500;
 		border: 0.5px solid var(--separator);
+	}
+
+	.dev-btn.danger {
+		color: var(--danger);
 	}
 
 	.dev-btn:disabled {

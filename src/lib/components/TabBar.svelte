@@ -39,15 +39,9 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		padding-top: 6px;
-		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-		background: linear-gradient(
-			to top,
-			color-mix(in srgb, var(--bg-primary) 96%, transparent) 60%,
-			color-mix(in srgb, var(--bg-primary) 0%, transparent) 100%
-		);
-		backdrop-filter: blur(16px) saturate(180%);
-		-webkit-backdrop-filter: blur(16px) saturate(180%);
+		padding-top: 2px;
+		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
+		background: var(--bg-primary);
 		border-top: 0.5px solid var(--separator);
 		z-index: 100;
 	}
@@ -66,8 +60,8 @@
 		align-items: center;
 		justify-content: center;
 		gap: 4px;
-		padding: 6px 0;
-		min-height: 44px;
+		padding: 4px 0;
+		min-height: 40px;
 		color: var(--text-tertiary);
 		font-size: 10px;
 		font-weight: 500;
