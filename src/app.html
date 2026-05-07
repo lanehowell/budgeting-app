@@ -28,6 +28,11 @@
 				}
 			})();
 		</script>
+		<!-- Google Identity Services — needed for native (no-redirect) sign-in
+		     inside iOS standalone PWAs, where Firebase's popup and redirect
+		     flows are both broken. The GIS button returns a credential entirely
+		     in-page, which we exchange with Firebase via signInWithCredential.
+		     Loaded async + defer so it doesn't block first paint. -->
 		<script src="https://accounts.google.com/gsi/client" async defer></script>
 		%sveltekit.head%
 	</head>

@@ -5,21 +5,31 @@
 	import {
 		signInWithGoogle,
 		signInWithGoogleIdToken,
+		isIosStandalonePwa,
+		shouldUseGisOnMobile,
 		authState
 	} from '$lib/firebase/auth';
 
 	let signingIn = $state(false);
 	let error = $state<string | null>(null);
 
-	// Always prefer GIS when a Google client ID is configured. GIS uses an
-	// in-page iframe modal that works on every platform, including iOS
-	// standalone PWAs (where signInWithPopup would open a new browser tab and
-	// kick the user out of standalone). Platform detection is removed entirely
-	// — relying on isIosStandalonePwa() was fragile (iPad with Request Desktop
-	// Site spoofs Mac UA, etc.) and any false negative meant the popup
-	// rendered and broke standalone mode. The Firebase popup path now exists
-	// only as a fallback for environments without a client ID (dev / emulator).
-	let useGis = $state(browser && !!PUBLIC_GOOGLE_CLIENT_ID);
+	// Decide synchronously at construction time so the right button is in the
+	// DOM on first paint — no flash of a popup-based button on iOS standalone
+	// (which would open a Safari tab and exit standalone if tapped).
+	//
+	// GIS is preferred on:
+	//   - iOS standalone PWAs (popup/redirect both broken in this mode)
+	//   - any mobile UA / narrow viewport (Firebase redirect has racey
+	//     session-persistence bugs on mobile Safari and Chrome iOS)
+	// Desktop browsers fall through to Firebase's signInWithPopup, which is
+	// reliable in real browser windows.
+	function shouldUseGis(): boolean {
+		if (!browser) return false;
+		if (!PUBLIC_GOOGLE_CLIENT_ID) return false;
+		return isIosStandalonePwa() || shouldUseGisOnMobile();
+	}
+
+	let useGis = $state(shouldUseGis());
 	let gisContainer: HTMLDivElement | undefined = $state();
 
 	$effect(() => {
@@ -52,9 +62,10 @@
 				cancel_on_tap_outside: true
 			});
 			gisContainer.innerHTML = '';
+			const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 			g.accounts.id.renderButton(gisContainer, {
 				type: 'standard',
-				theme: 'filled_black',
+				theme: isDark ? 'filled_black' : 'outline',
 				size: 'large',
 				text: 'signin_with',
 				shape: 'pill',
@@ -84,9 +95,7 @@
 	}
 
 	async function handleGoogle() {
-		// Only reachable when no client ID is configured (dev / emulator).
-		// In production with a client ID set, useGis is true and the GIS
-		// button renders instead of this popup-based fallback.
+		// Desktop fallback path. Mobile / standalone uses the GIS button above.
 		signingIn = true;
 		error = null;
 		try {
