@@ -38,8 +38,8 @@
 
 <style>
 	.circle {
-		width: 22px;
-		height: 22px;
+		width: 26px;
+		height: 26px;
 		border-radius: 50%;
 		flex-shrink: 0;
 		padding: 0;
@@ -58,7 +58,7 @@
 
 	.empty {
 		background: transparent;
-		border: 1.25px solid var(--text-quaternary);
+		border: 1.8px solid var(--separator-strong);
 	}
 
 	.empty:hover {
@@ -66,8 +66,8 @@
 	}
 
 	.filled {
-		background: var(--text-secondary);
-		color: var(--bg-primary);
+		background: var(--success);
+		color: #ffffff;
 		border: none;
 	}
 
@@ -75,6 +75,6 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		color: var(--bg-primary);
+		color: #ffffff;
 	}
 </style>

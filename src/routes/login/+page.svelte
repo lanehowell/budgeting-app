@@ -93,10 +93,14 @@
 <div class="login">
 	<div class="card">
 		<div class="brand">
-			<div class="mark">●</div>
+			<div class="brand-mark" aria-hidden="true">
+				<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M3 21V10M9 21V4M15 21v-7M21 21v-12" />
+				</svg>
+			</div>
 			<h1 class="title">Budget</h1>
+			<p class="tagline">A personal budget that doesn't guess.</p>
 		</div>
-		<p class="tagline">A personal budget that doesn't guess.</p>
 
 		{#if useGis}
 			<div class="gis-wrap" bind:this={gisContainer}></div>
@@ -145,9 +149,11 @@
 		max-width: 380px;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: 16px;
 		text-align: center;
-		padding: 32px 24px;
+		padding: 36px 28px;
+		background: var(--card);
+		border-radius: var(--radius-card);
 	}
 
 	.brand {
@@ -155,25 +161,33 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 12px;
+		margin-bottom: 6px;
 	}
 
-	.mark {
-		color: var(--text-primary);
-		font-size: 22px;
-		line-height: 1;
+	.brand-mark {
+		width: 64px;
+		height: 64px;
+		border-radius: 18px;
+		background: linear-gradient(135deg, var(--accent), oklch(0.65 0.18 250));
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 6px 18px var(--accent-soft);
 	}
 
 	.title {
 		font-size: 28px;
-		font-weight: 600;
-		letter-spacing: -0.022em;
+		font-weight: 700;
+		letter-spacing: -0.025em;
 		color: var(--text-primary);
+		margin-top: 4px;
 	}
 
 	.tagline {
 		color: var(--text-secondary);
 		font-size: 14px;
-		margin-bottom: 18px;
+		font-weight: 500;
+		margin-top: 0;
 	}
 
 	.google-btn {
@@ -182,12 +196,12 @@
 		justify-content: center;
 		gap: 12px;
 		padding: 13px 20px;
-		min-height: 46px;
+		min-height: 48px;
 		border-radius: 999px;
-		background: var(--text-primary);
-		color: var(--bg-primary);
-		font-size: 14px;
-		font-weight: 500;
+		background: var(--accent);
+		color: #ffffff;
+		font-size: 15px;
+		font-weight: 600;
 		letter-spacing: -0.007em;
 		transition:
 			transform 100ms var(--ease-standard),
