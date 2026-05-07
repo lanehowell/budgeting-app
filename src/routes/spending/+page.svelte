@@ -1,7 +1,12 @@
 <script lang="ts">
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import Card from '$lib/components/Card.svelte';
+	import AnimatedNumber from '$lib/components/AnimatedNumber.svelte';
+	import Sparkline from '$lib/components/Sparkline.svelte';
 	import CategoryGlyph from '$lib/components/CategoryGlyph.svelte';
+	import MerchantLogo from '$lib/components/MerchantLogo.svelte';
 	import SegmentedToggle from '$lib/components/SegmentedToggle.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import CategoryDrillSheet from '$lib/components/CategoryDrillSheet.svelte';
 	import { categories } from '$lib/data/categories';
 	import { transactions } from '$lib/data/transactions';
@@ -21,26 +26,88 @@
 	let categoryById = $derived(new Map(cats.map((c) => [c.id, c])));
 	let payPeriod = $derived(getCurrentPeriod(liveSettings));
 
-	let view = $state<'category' | 'merchant'>('category');
+	let scope = $state<'period' | 'month'>('period');
+	let groupBy = $state<'category' | 'merchant'>('category');
 
-	let inPeriod = $derived(
-		txList.filter((t) => {
-			const d = new Date(t.postedDate).getTime();
-			return d >= payPeriod.start.getTime() && d <= payPeriod.end.getTime() + 86399999;
-		})
-	);
+	type Range = { start: Date; end: Date; label: string };
 
-	let spendingTxs = $derived(
-		inPeriod.filter((t) => {
-			if (t.amount >= 0) return false;
-			if (!t.categoryId) return false;
-			const cat = categoryById.get(t.categoryId);
-			if (!cat) return false;
-			return !cat.excludeFromSpending && !cat.isTransferCategory;
-		})
-	);
+	function dayStart(d: Date): Date {
+		return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+	}
 
-	let total = $derived(spendingTxs.reduce((sum, t) => sum + Math.abs(t.amount), 0));
+	let currentRange = $derived.by((): Range => {
+		if (scope === 'period') {
+			return {
+				start: dayStart(payPeriod.start),
+				end: dayStart(payPeriod.end),
+				label: payPeriod.label.long
+			};
+		}
+		const now = new Date();
+		const start = new Date(now.getFullYear(), now.getMonth(), 1);
+		const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+		const monthLabel = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+		return { start, end, label: monthLabel };
+	});
+
+	let previousRange = $derived.by((): Range => {
+		if (scope === 'period') {
+			const len = payPeriod.totalDays;
+			const end = new Date(payPeriod.start);
+			end.setDate(end.getDate() - 1);
+			const start = new Date(end);
+			start.setDate(start.getDate() - (len - 1));
+			return { start: dayStart(start), end: dayStart(end), label: 'previous period' };
+		}
+		const now = new Date();
+		const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+		const end = new Date(now.getFullYear(), now.getMonth(), 0);
+		return { start, end, label: 'previous month' };
+	});
+
+	function isSpendingTx(t: Transaction): boolean {
+		if (t.amount >= 0) return false;
+		if (!t.categoryId) return false;
+		const cat = categoryById.get(t.categoryId);
+		if (!cat) return false;
+		return !cat.excludeFromSpending && !cat.isTransferCategory;
+	}
+
+	function inRange(t: Transaction, r: Range): boolean {
+		const time = new Date(t.postedDate).getTime();
+		return time >= r.start.getTime() && time <= r.end.getTime() + 86399999;
+	}
+
+	let currentTxs = $derived(txList.filter((t) => isSpendingTx(t) && inRange(t, currentRange)));
+	let previousTxs = $derived(txList.filter((t) => isSpendingTx(t) && inRange(t, previousRange)));
+
+	let total = $derived(currentTxs.reduce((s, t) => s + Math.abs(t.amount), 0));
+	let prevTotal = $derived(previousTxs.reduce((s, t) => s + Math.abs(t.amount), 0));
+
+	let deltaPct = $derived(prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : null);
+
+	// Daily cumulative sparkline data over current range
+	let sparkData = $derived.by((): number[] => {
+		const start = currentRange.start.getTime();
+		const end = currentRange.end.getTime();
+		const today = dayStart(new Date()).getTime();
+		const upTo = Math.min(end, today);
+		if (upTo < start) return [0];
+		const days = Math.floor((upTo - start) / 86400000) + 1;
+		const buckets = new Array(days).fill(0);
+		for (const t of currentTxs) {
+			const d = dayStart(new Date(t.postedDate)).getTime();
+			const idx = Math.floor((d - start) / 86400000);
+			if (idx >= 0 && idx < days) buckets[idx] += Math.abs(t.amount);
+		}
+		const cum: number[] = [];
+		let running = 0;
+		for (let i = 0; i < days; i++) {
+			running += buckets[i];
+			cum.push(running);
+		}
+		return cum.length >= 2 ? cum : [0, running];
+	});
 
 	type CategorySum = {
 		categoryId: string;
@@ -48,33 +115,41 @@
 		icon: string;
 		color: string;
 		total: number;
+		count: number;
 	};
 
 	let byCategory = $derived.by((): CategorySum[] => {
 		const map = new Map<string, CategorySum>();
-		for (const t of spendingTxs) {
+		for (const t of currentTxs) {
 			const cat = categoryById.get(t.categoryId!)!;
 			const existing = map.get(cat.id);
 			if (existing) {
 				existing.total += Math.abs(t.amount);
+				existing.count += 1;
 			} else {
 				map.set(cat.id, {
 					categoryId: cat.id,
 					name: cat.name,
 					icon: cat.icon,
 					color: cat.color,
-					total: Math.abs(t.amount)
+					total: Math.abs(t.amount),
+					count: 1
 				});
 			}
 		}
 		return [...map.values()].sort((a, b) => b.total - a.total);
 	});
 
-	type MerchantSum = { merchant: string; categoryId: string; total: number; count: number };
+	type MerchantSum = {
+		merchant: string;
+		categoryId: string;
+		total: number;
+		count: number;
+	};
 
 	let byMerchant = $derived.by((): MerchantSum[] => {
 		const map = new Map<string, MerchantSum>();
-		for (const t of spendingTxs) {
+		for (const t of currentTxs) {
 			const key = t.displayName;
 			const existing = map.get(key);
 			if (existing) {
@@ -92,124 +167,135 @@
 		return [...map.values()].sort((a, b) => b.total - a.total);
 	});
 
+	let maxCat = $derived(byCategory[0]?.total ?? 1);
+	let maxMerchant = $derived(byMerchant[0]?.total ?? 1);
+
 	let drillCategoryId = $state<string | null>(null);
 	let drillCategory = $derived(drillCategoryId ? (categoryById.get(drillCategoryId) ?? null) : null);
 	let drillTransactions = $derived(
 		drillCategoryId
-			? spendingTxs
+			? currentTxs
 					.filter((t) => t.categoryId === drillCategoryId)
 					.sort((a, b) => new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime())
 			: []
 	);
 
-	let elapsedPct = $derived((payPeriod.daysElapsed / payPeriod.totalDays) * 100);
-	let burnPct = $derived(
-		payPeriod.daysElapsed > 0
-			? Math.min(100, (payPeriod.daysElapsed / payPeriod.totalDays) * 100)
-			: 0
-	);
-	let maxCat = $derived(byCategory[0]?.total ?? 1);
-	let maxMerchant = $derived(byMerchant[0]?.total ?? 1);
+	function fmtWhole(n: number): string {
+		return `$${Math.round(n).toLocaleString('en-US')}`;
+	}
 </script>
 
 <div class="page">
 	<div class="pad">
-		<PageHeader title="Spending" eyebrow={`Pay period · ${payPeriod.label.long}`} />
+		<PageHeader title="Spending" subtitle={currentRange.label} />
 	</div>
 
-	<div class="pad summary">
-		<div class="big tabular">{formatCurrency(total)}</div>
-		<div class="big-sub">this pay period</div>
-
-		<div class="period-bar-wrap">
-			<div class="period-bar">
-				<div class="period-fill" style="width: {burnPct}%"></div>
-				<div class="period-marker" style="left: {elapsedPct}%"></div>
-			</div>
-			<div class="period-meta tabular">
-				<span>{payPeriod.label.start}</span>
-				<span>Day {payPeriod.daysElapsed} of {payPeriod.totalDays}</span>
-				<span>{payPeriod.label.end}</span>
-			</div>
-		</div>
-	</div>
-
-	<div class="pad toggle-row">
+	<div class="pad scope-row">
 		<SegmentedToggle
-			value={view}
-			onChange={(v) => (view = v)}
+			value={scope}
+			onChange={(v) => (scope = v)}
 			options={[
-				{ value: 'category', label: 'Category' },
-				{ value: 'merchant', label: 'Merchant' }
+				{ value: 'period', label: 'Pay period' },
+				{ value: 'month', label: 'Month' }
 			]}
-			ariaLabel="Breakdown"
+			ariaLabel="Spending scope"
+		/>
+	</div>
+
+	<div class="pad hero-wrap">
+		<Card padding={20}>
+			<div class="hero-eyebrow">Total spent</div>
+			<div class="hero-line">
+				<div class="hero-num">
+					<AnimatedNumber value={total} />
+				</div>
+				{#if deltaPct !== null}
+					{@const isDown = deltaPct < 0}
+					<span class="delta-pill" data-tone={isDown ? 'good' : 'bad'}>
+						<Icon name={isDown ? 'arrow-down' : 'arrow-up'} size={11} strokeWidth={2.5} />
+						<span class="tabular">{Math.abs(deltaPct).toFixed(0)}%</span>
+					</span>
+				{/if}
+			</div>
+			<div class="hero-sub">
+				vs {fmtWhole(prevTotal)} {previousRange.label}
+			</div>
+			<div class="spark">
+				<Sparkline data={sparkData} height={64} />
+			</div>
+		</Card>
+	</div>
+
+	<div class="pad group-row">
+		<SegmentedToggle
+			value={groupBy}
+			onChange={(v) => (groupBy = v)}
+			options={[
+				{ value: 'category', label: 'By category' },
+				{ value: 'merchant', label: 'By merchant' }
+			]}
+			ariaLabel="Spending breakdown"
 		/>
 	</div>
 
 	{#if total === 0}
 		<div class="pad">
-			<p class="empty">No categorized spending yet.</p>
+			<Card padding={28}>
+				<p class="empty-text">No spending in this {scope === 'period' ? 'period' : 'month'}.</p>
+			</Card>
 		</div>
-	{:else if view === 'category'}
-		<div class="pad">
-			<ul class="rows">
-				{#each byCategory as row, i (row.categoryId)}
-					{@const pct = row.total / maxCat}
-					<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-					<li
-						class="row interactive"
-						class:last={i === byCategory.length - 1}
-						role="button"
-						tabindex="0"
-						onclick={() => (drillCategoryId = row.categoryId)}
-						onkeydown={(e) => {
-							if (e.key === 'Enter' || e.key === ' ') {
-								e.preventDefault();
-								drillCategoryId = row.categoryId;
-							}
-						}}
-					>
-						<CategoryGlyph icon={row.icon} size={28} color={row.color ?? 'var(--text-secondary)'} />
-						<span class="title-block">
-							<span class="title-line">
+	{:else if groupBy === 'category'}
+		<div class="pad rows">
+			{#each byCategory as row (row.categoryId)}
+				{@const pct = row.total / maxCat}
+				<Card padding={12} interactive onclick={() => (drillCategoryId = row.categoryId)}>
+					<div class="row">
+						<div
+							class="leading category"
+							style:background="{row.color}22"
+							style:color={row.color}
+						>
+							<CategoryGlyph icon={row.icon} size={20} color="currentColor" />
+						</div>
+						<div class="title-block">
+							<div class="title-line">
 								<span class="title-text">{row.name}</span>
 								<span class="amount tabular">{formatCurrency(row.total)}</span>
-							</span>
-							<div class="bar-wrap">
-								<div class="bar" style="width: {pct * 100}%"></div>
 							</div>
-						</span>
-					</li>
-				{/each}
-			</ul>
+							<div class="title-meta">{row.count} transaction{row.count === 1 ? '' : 's'}</div>
+							<div class="row-bar">
+								<div class="row-bar-fill" style:width="{pct * 100}%" style:background={row.color}></div>
+							</div>
+						</div>
+					</div>
+				</Card>
+			{/each}
 		</div>
 	{:else}
-		<div class="pad">
-			<ul class="rows">
-				{#each byMerchant as m, i (m.merchant)}
-					{@const pct = m.total / maxMerchant}
-					{@const cat = categoryById.get(m.categoryId)}
-					<li class="row" class:last={i === byMerchant.length - 1}>
-						<CategoryGlyph
-							icon={cat?.icon ?? 'help-circle'}
-							size={28}
-							color={cat?.color ?? 'var(--text-secondary)'}
-						/>
-						<span class="title-block">
-							<span class="title-line">
+		<div class="pad rows">
+			{#each byMerchant as m (m.merchant)}
+				{@const pct = m.total / maxMerchant}
+				{@const cat = categoryById.get(m.categoryId)}
+				<Card padding={12}>
+					<div class="row">
+						<MerchantLogo merchant={m.merchant} size={36} radius={10} />
+						<div class="title-block">
+							<div class="title-line">
 								<span class="title-text">{m.merchant}</span>
 								<span class="amount tabular">{formatCurrency(m.total)}</span>
-							</span>
-							<div class="bar-row">
-								<div class="bar-wrap thin">
-									<div class="bar" style="width: {pct * 100}%"></div>
-								</div>
-								<span class="count tabular">{m.count}×</span>
 							</div>
-						</span>
-					</li>
-				{/each}
-			</ul>
+							<div class="title-meta">{m.count} transaction{m.count === 1 ? '' : 's'}</div>
+							<div class="row-bar">
+								<div
+									class="row-bar-fill"
+									style:width="{pct * 100}%"
+									style:background={cat?.color ?? 'var(--accent)'}
+								></div>
+							</div>
+						</div>
+					</div>
+				</Card>
+			{/each}
 		</div>
 	{/if}
 </div>
@@ -218,7 +304,7 @@
 	open={drillCategory !== null}
 	category={drillCategory}
 	transactions={drillTransactions}
-	periodLabel={`Pay period · ${payPeriod.label.long}`}
+	periodLabel={currentRange.label}
 	onClose={() => (drillCategoryId = null)}
 />
 
@@ -231,99 +317,99 @@
 		padding: 0 var(--side-pad);
 	}
 
-	.summary {
-		padding-bottom: 22px;
+	.scope-row {
+		padding-bottom: 14px;
 	}
 
-	.big {
-		font-family: var(--font-num);
-		font-variant-numeric: tabular-nums;
-		font-size: 48px;
-		font-weight: 500;
-		letter-spacing: -0.038em;
-		color: var(--text-primary);
-		line-height: 1;
+	.hero-wrap {
+		padding-bottom: 14px;
 	}
 
-	.big-sub {
-		margin-top: 6px;
+	.hero-eyebrow {
 		font-size: 13px;
-		color: var(--text-tertiary);
+		color: var(--text-secondary);
+		font-weight: 500;
+		letter-spacing: -0.005em;
 	}
 
-	.period-bar-wrap {
-		margin-top: 22px;
-	}
-
-	.period-bar {
-		position: relative;
-		height: 6px;
-		background: var(--fill-1);
-		border-radius: 3px;
-		overflow: visible;
-	}
-
-	.period-fill {
-		position: absolute;
-		left: 0;
-		top: 0;
-		bottom: 0;
-		background: var(--text-primary);
-		border-radius: 3px;
-		transition: width 350ms cubic-bezier(0.3, 0.7, 0.4, 1);
-	}
-
-	.period-marker {
-		position: absolute;
-		top: -3px;
-		bottom: -3px;
-		width: 1.5px;
-		background: var(--text-secondary);
-		transform: translateX(-50%);
-	}
-
-	.period-meta {
+	.hero-line {
 		display: flex;
-		justify-content: space-between;
-		margin-top: 8px;
-		font-size: 11px;
-		color: var(--text-tertiary);
+		align-items: baseline;
+		gap: 10px;
+		margin-top: 4px;
 	}
 
-	.toggle-row {
-		padding-bottom: 18px;
+	.hero-num {
+		font-size: 42px;
+		font-weight: 700;
+		letter-spacing: -0.035em;
+		color: var(--text-primary);
+		line-height: 1.05;
 	}
 
-	.empty {
+	.delta-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+		padding: 3px 8px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 600;
+	}
+
+	.delta-pill[data-tone='good'] {
+		background: var(--success-soft);
+		color: var(--success);
+	}
+
+	.delta-pill[data-tone='bad'] {
+		background: var(--danger-soft);
+		color: var(--danger);
+	}
+
+	.hero-sub {
+		font-size: 12px;
 		color: var(--text-tertiary);
+		margin-top: 2px;
+	}
+
+	.spark {
+		margin-top: 14px;
+	}
+
+	.group-row {
+		padding-bottom: 12px;
+	}
+
+	.empty-text {
+		text-align: center;
+		color: var(--text-secondary);
 		font-size: 14px;
-		padding: 16px 0;
 	}
 
 	.rows {
 		display: flex;
 		flex-direction: column;
+		gap: 6px;
 	}
 
 	.row {
 		display: flex;
 		align-items: center;
-		gap: 14px;
-		padding: 14px 0;
-		border-bottom: 0.5px solid var(--separator);
+		gap: 12px;
 	}
 
-	.row.last {
-		border-bottom: none;
+	.leading {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
 	}
 
-	.row.interactive {
-		cursor: pointer;
-		transition: opacity 100ms var(--ease-standard);
-	}
-
-	.row.interactive:active {
-		opacity: 0.6;
+	.leading.category {
+		width: 36px;
+		height: 36px;
+		border-radius: 10px;
 	}
 
 	.title-block {
@@ -331,7 +417,7 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 4px;
 	}
 
 	.title-line {
@@ -342,44 +428,39 @@
 	}
 
 	.title-text {
-		font-size: 14px;
-		font-weight: 500;
+		font-size: 15px;
+		font-weight: 600;
 		color: var(--text-primary);
-		letter-spacing: -0.007em;
+		letter-spacing: -0.013em;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.title-meta {
+		font-size: 12px;
+		color: var(--text-tertiary);
 	}
 
 	.amount {
-		font-size: 13px;
-		font-weight: 500;
+		font-size: 16px;
+		font-weight: 600;
 		color: var(--text-primary);
-	}
-
-	.bar-wrap {
-		height: 2px;
-		background: var(--fill-1);
-		border-radius: 1px;
-		overflow: hidden;
-	}
-
-	.bar-row {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.bar-wrap.thin {
-		flex: 1 1 auto;
-	}
-
-	.bar {
-		height: 100%;
-		background: var(--text-secondary);
-		transition: width 350ms cubic-bezier(0.3, 0.7, 0.4, 1);
-	}
-
-	.count {
-		font-size: 11px;
-		color: var(--text-tertiary);
+		letter-spacing: -0.013em;
 		flex-shrink: 0;
+	}
+
+	.row-bar {
+		height: 4px;
+		border-radius: 2px;
+		background: var(--track);
+		overflow: hidden;
+		margin-top: 2px;
+	}
+
+	.row-bar-fill {
+		height: 100%;
+		border-radius: 2px;
+		transition: width 500ms cubic-bezier(0.3, 0.7, 0.4, 1);
 	}
 </style>
