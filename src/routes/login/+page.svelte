@@ -11,7 +11,17 @@
 
 	let signingIn = $state(false);
 	let error = $state<string | null>(null);
-	let useGis = $state(false);
+
+	// Detect GIS-vs-popup synchronously at component construction so the right
+	// button renders on first paint. If we defer this to $effect, the popup
+	// button is briefly visible on iOS standalone PWAs — and signInWithPopup
+	// opens a new browser tab, which kicks the user out of standalone mode.
+	function shouldUseGis(): boolean {
+		if (!browser) return false;
+		return isIosStandalonePwa() && !!PUBLIC_GOOGLE_CLIENT_ID;
+	}
+
+	let useGis = $state(shouldUseGis());
 	let gisContainer: HTMLDivElement | undefined = $state();
 
 	$effect(() => {
@@ -24,8 +34,6 @@
 	});
 
 	$effect(() => {
-		if (!browser) return;
-		useGis = isIosStandalonePwa() && !!PUBLIC_GOOGLE_CLIENT_ID;
 		if (useGis) renderGisButton();
 	});
 
@@ -78,6 +86,15 @@
 	}
 
 	async function handleGoogle() {
+		// Defensive guard: signInWithPopup opens a new browser tab on iOS
+		// standalone PWA, which kicks the user out. Force a re-detection and
+		// switch to GIS if applicable. Should be unreachable now that useGis
+		// is detected synchronously, but kept as a safety net.
+		if (browser && isIosStandalonePwa() && PUBLIC_GOOGLE_CLIENT_ID) {
+			useGis = true;
+			renderGisButton();
+			return;
+		}
 		signingIn = true;
 		error = null;
 		try {
