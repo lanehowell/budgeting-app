@@ -3,10 +3,11 @@ import { writable, type Readable } from 'svelte/store';
 import {
 	GoogleAuthProvider,
 	browserLocalPersistence,
+	getRedirectResult,
 	onAuthStateChanged,
 	setPersistence,
-	signInWithCredential,
 	signInWithPopup,
+	signInWithRedirect,
 	signOut as fbSignOut,
 	type User
 } from 'firebase/auth';
@@ -33,21 +34,14 @@ if (browser) {
 	onAuthStateChanged(auth(), (user) => {
 		internal.set({ user, loading: false });
 	});
+	// If we just returned from a signInWithRedirect flow, surface any error
+	// (success is picked up automatically by onAuthStateChanged above).
+	getRedirectResult(auth()).catch((err) => {
+		console.warn('getRedirectResult failed:', err);
+	});
 }
 
 export const authState: Readable<AuthState> = { subscribe: internal.subscribe };
-
-// True when running as an installed iOS PWA (Home Screen icon launch).
-// Firebase's popup/redirect flows are broken in this mode — use Google
-// Identity Services instead, which signs in via in-page modal.
-export function isIosStandalonePwa(): boolean {
-	if (!browser) return false;
-	const nav = window.navigator as Navigator & { standalone?: boolean };
-	const iosStandalone = nav.standalone === true;
-	const displayStandalone = window.matchMedia?.('(display-mode: standalone)').matches ?? false;
-	const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-	return isIos && (iosStandalone || displayStandalone);
-}
 
 export async function signInWithGoogle(): Promise<User> {
 	await authReady;
@@ -56,13 +50,16 @@ export async function signInWithGoogle(): Promise<User> {
 	return result.user;
 }
 
-// Exchange a Google ID token (obtained via GIS) for a Firebase session.
-// Used in iOS standalone PWA where popup/redirect break.
-export async function signInWithGoogleIdToken(idToken: string): Promise<User> {
+// Same-origin redirect flow — used by the login page. The current window
+// navigates to the Firebase auth handler at /__/auth/handler (same origin as
+// long as PUBLIC_FIREBASE_AUTH_DOMAIN matches the deploy domain), Google
+// does its sign-in, and the user is redirected back. Same-origin throughout,
+// so iOS Safari keeps a standalone PWA in standalone — unlike popup or GIS,
+// which open a separate window/tab.
+export async function signInWithGoogleRedirect(): Promise<void> {
 	await authReady;
-	const credential = GoogleAuthProvider.credential(idToken);
-	const result = await signInWithCredential(auth(), credential);
-	return result.user;
+	const provider = new GoogleAuthProvider();
+	await signInWithRedirect(auth(), provider);
 }
 
 export async function signOut(): Promise<void> {
