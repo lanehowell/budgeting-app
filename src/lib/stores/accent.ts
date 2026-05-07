@@ -16,7 +16,7 @@ export const ACCENT_OPTIONS: AccentChoice[] = [
 const STORAGE_KEY = 'accent';
 
 function readStored(): AccentChoice {
-	if (!browser) return 'mono';
+	if (!browser) return 'blue';
 	const stored = localStorage.getItem(STORAGE_KEY);
 	if (
 		stored === 'mono' ||
@@ -29,7 +29,7 @@ function readStored(): AccentChoice {
 	) {
 		return stored;
 	}
-	return 'mono';
+	return 'blue';
 }
 
 function apply(choice: AccentChoice) {

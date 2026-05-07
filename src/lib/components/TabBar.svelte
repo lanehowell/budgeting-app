@@ -4,9 +4,9 @@
 
 	const tabs = [
 		{ href: '/bills', label: 'Bills', icon: 'receipt' },
-		{ href: '/transactions', label: 'Activity', icon: 'list' },
+		{ href: '/transactions', label: 'Categorize', icon: 'list' },
 		{ href: '/spending', label: 'Spending', icon: 'bar-chart' },
-		{ href: '/profile', label: 'Profile', icon: 'user' }
+		{ href: '/profile', label: 'Settings', icon: 'user' }
 	];
 
 	function isActive(href: string, pathname: string): boolean {
@@ -26,7 +26,7 @@
 				aria-current={active ? 'page' : undefined}
 				data-sveltekit-noscroll
 			>
-				<Icon name={tab.icon} size={22} strokeWidth={active ? 2 : 1.5} />
+				<Icon name={tab.icon} size={24} strokeWidth={active ? 2.2 : 1.8} />
 				<span class="label">{tab.label}</span>
 			</a>
 		{/each}
@@ -39,10 +39,12 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		padding-top: 2px;
-		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
-		background: var(--bg-primary);
-		border-top: 0.5px solid var(--separator);
+		padding-top: 8px;
+		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+		background: var(--tabbar-bg);
+		backdrop-filter: blur(24px) saturate(180%);
+		-webkit-backdrop-filter: blur(24px) saturate(180%);
+		border-top: 0.5px solid var(--tabbar-border);
 		z-index: 100;
 	}
 
@@ -51,7 +53,6 @@
 		grid-template-columns: repeat(4, 1fr);
 		max-width: 720px;
 		margin: 0 auto;
-		padding: 4px 0;
 	}
 
 	.tab {
@@ -59,19 +60,18 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 4px;
-		padding: 4px 0;
-		min-height: 40px;
-		color: var(--text-tertiary);
+		gap: 3px;
+		padding: 6px 0;
+		min-height: 44px;
+		color: var(--text-secondary);
 		font-size: 10px;
-		font-weight: 500;
-		letter-spacing: 0.01em;
+		font-weight: 600;
+		letter-spacing: 0.1px;
 		transition: color 150ms var(--ease-standard);
 	}
 
 	.tab.active {
-		color: var(--text-primary);
-		font-weight: 600;
+		color: var(--accent);
 	}
 
 	.label {
@@ -86,7 +86,7 @@
 			height: 100vh;
 			padding-top: 32px;
 			padding-bottom: 32px;
-			background: var(--bg-primary);
+			background: var(--card);
 			backdrop-filter: none;
 			-webkit-backdrop-filter: none;
 			border-top: none;
@@ -106,11 +106,11 @@
 			padding: 10px 14px;
 			border-radius: var(--radius-card);
 			font-size: 14px;
+			letter-spacing: -0.01em;
 		}
 
 		.tab.active {
-			background: var(--fill-1);
-			font-weight: 500;
+			background: var(--accent-soft);
 		}
 	}
 </style>
